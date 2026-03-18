@@ -527,7 +527,7 @@ function bindReactsSm(container){
 async function loadNotifications(){
   if(!S.user)return;
   const{data}=await sb.from("notifications")
-    .select(`id,is_read,created_at,thread_id,reply_id,
+    .select(`id,is_read,created_at,thread_id,reply_id,notif_type,
       threads!thread_id(title,body,type),
       replies!reply_id(body,profiles!user_id(display_name))`)
     .eq("user_id",S.user.id)
@@ -553,10 +553,14 @@ function renderNotifTab(){
     const who=n.replies?.profiles?.display_name||"誰か";
     const th=n.threads;
     const title=th?.title||(th?.body?.slice(0,20)+"…")||"投稿";
+    const isBest=n.notif_type==="best_answer";
     return`<div class="notif-card${n.is_read?"":" unread"}" data-tid="${n.thread_id}" data-type="${th?.type||'question'}">
-      <div class="notif-icon">💬</div>
+      <div class="notif-icon">${isBest?"🏆":"💬"}</div>
       <div class="notif-body">
-        <div class="notif-text"><strong>${esc(who)}</strong>さんが「${esc(title)}」に返信しました</div>
+        <div class="notif-text">${isBest
+          ?`「${esc(title)}」への返信が<strong>ベストアンサーに選ばれました！</strong>`
+          :`<strong>${esc(who)}</strong>さんが「${esc(title)}」に返信しました`
+        }</div>
         <div class="notif-time">${rtime(n.created_at)}</div>
       </div>
     </div>`;
@@ -585,6 +589,13 @@ async function createNotification(threadId,replyId){
   const{data:th}=await sb.from("threads").select("user_id").eq("id",threadId).single();
   if(!th||th.user_id===S.user.id)return;
   await sb.from("notifications").insert({user_id:th.user_id,thread_id:threadId,reply_id:replyId});
+}
+
+// ベストアンサーに選ばれた返信者への通知
+async function createBestAnswerNotification(threadId,replyId){
+  const{data:r}=await sb.from("replies").select("user_id").eq("id",replyId).single();
+  if(!r||r.user_id===S.user.id)return;
+  await sb.from("notifications").insert({user_id:r.user_id,thread_id:threadId,reply_id:replyId,notif_type:"best_answer"});
 }
 
 /* ===== SEARCH ===== */
@@ -968,6 +979,8 @@ async function openDetail(threadId,type,fromTab){
         // S.threadsのキャッシュも更新
         const cached=S.threads.find(t=>t.id===threadId);
         if(cached)cached.best_reply_id=rid;
+        // 返信者に「ベストアンサーに選ばれました」通知を送る
+        await createBestAnswerNotification(threadId,rid);
         // 選択したボタンを即座に非表示＋バッジ表示（再描画前に即反映）
         dv.querySelectorAll(".btn-best").forEach(btn=>btn.remove());
         const targetCard=dv.querySelector(`.rcard[data-rid="${rid}"]`);
