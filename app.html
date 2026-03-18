@@ -132,15 +132,22 @@ img.av{object-fit:cover;display:block}
 .fsel{cursor:pointer}
 .ccount{font-size:11px;color:var(--mist);text-align:right;margin-top:3px}
 .req{color:var(--rust)}
-/* AVATAR */
+/* AVATAR / ICON PICKER */
 .av-upload-wrap{display:flex;align-items:center;gap:16px;margin-bottom:8px}
-.av-preview{width:64px;height:64px;border-radius:50%;overflow:hidden;border:2px solid var(--warm);background:var(--warm);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--mist);flex-shrink:0}
-.av-preview img{width:100%;height:100%;object-fit:cover}
+.av-preview-lg{width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--duck-pale);background:var(--warm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.av-preview-lg img{width:100%;height:100%;object-fit:cover}
 .av-upload-actions{display:flex;flex-direction:column;gap:6px}
 .btn-av{font-size:12px;color:var(--duck);background:none;border:1px solid var(--duck);padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
 .btn-av:hover{background:var(--duck);color:white}
 .btn-av-del{font-size:12px;color:var(--mist);background:none;border:1px solid rgba(26,23,20,.12);padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
 .btn-av-del:hover{border-color:var(--error);color:var(--error)}
+/* アイコン選択グリッド */
+.icon-picker-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:14px 0}
+.icon-option{position:relative;cursor:pointer}
+.icon-option input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+.icon-option img{width:100%;aspect-ratio:1;border-radius:50%;border:3px solid transparent;transition:all .2s;display:block;background:var(--warm)}
+.icon-option input[type=radio]:checked+img{border-color:var(--duck);box-shadow:0 0 0 2px var(--duck-pale)}
+.icon-option img:hover{border-color:var(--mist)}
 /* BUTTONS */
 .btn-p{background:var(--duck);color:white;border:none;padding:12px 32px;font-family:'DM Sans',sans-serif;font-size:14px;letter-spacing:.04em;cursor:pointer;transition:all .2s}
 .btn-p:hover:not(:disabled){background:var(--ink);transform:translateY(-1px)}
@@ -896,11 +903,20 @@ async function openDetail(threadId,type,fromTab){
       overlay.querySelector("#bestConfirmCancel").addEventListener("click",()=>overlay.remove());
       overlay.addEventListener("click",e2=>{if(e2.target===overlay)overlay.remove();});
       overlay.querySelector("#bestConfirmOk").addEventListener("click",async()=>{
-        overlay.querySelector("#bestConfirmOk").disabled=true;
+        const okBtn=overlay.querySelector("#bestConfirmOk");
+        okBtn.disabled=true;
+        okBtn.textContent="保存中…";
         const{error}=await sb.from("threads").update({best_reply_id:rid}).eq("id",threadId);
+        if(error){
+          overlay.remove();
+          alert("エラーが発生しました。");
+          return;
+        }
         overlay.remove();
-        if(error){alert("エラーが発生しました。");return;}
+        // スレッドキャッシュを更新してから詳細を再描画
         await loadThreads();
+        // 少し待ってから再描画（DBの反映を確実に待つ）
+        await new Promise(r=>setTimeout(r,300));
         openDetail(threadId,type,fromTab);
       });
     });
@@ -986,17 +1002,31 @@ function renderAccount(){
     <div class="asec-h">プロフィール</div>
     <p style="font-size:13px;color:var(--mist);font-weight:300;margin-bottom:18px;line-height:1.7">投稿・返信時に表示される情報です。</p>
 
-    <label class="flbl">アイコン画像</label>
+    <label class="flbl">アイコン</label>
     <div class="av-upload-wrap">
-      <div class="av-preview" id="avPreview">
-        ${pr?.avatar_url?`<img src="${esc(pr.avatar_url)}" alt="">`:`<span>👤</span>`}
+      <div class="av-preview-lg" id="avPreview">
+        ${pr?.avatar_url
+          ?`<img src="${esc(pr.avatar_url)}" alt="">`
+          :`<img src="https://app.gyomu-karugamo.com/data/icon/icon01.png" alt="icon01">`}
       </div>
-      <div class="av-upload-actions">
-        <button class="btn-av" id="btnAvUpload">画像を選択</button>
-        ${pr?.avatar_url?`<button class="btn-av-del" id="btnAvDel">削除する</button>`:""}
+      <div>
+        <p style="font-size:12px;color:var(--mist);font-weight:300;line-height:1.7;margin-bottom:6px">好きなアイコンを選んでください。<br>選択後「保存する」で反映されます。</p>
+        <button class="btn-av" id="btnShowIconPicker">アイコンを選ぶ</button>
       </div>
     </div>
-    <input type="file" id="avFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none">
+    <div id="iconPickerArea" style="display:none">
+      <div class="icon-picker-grid">
+        ${Array.from({length:10},(_,i)=>{
+          const n=String(i+1).padStart(2,"0");
+          const url=`https://app.gyomu-karugamo.com/data/icon/icon${n}.png`;
+          const checked=(pr?.avatar_url===url)?" checked":"";
+          return`<label class="icon-option">
+            <input type="radio" name="iconPick" value="${url}"${checked}>
+            <img src="${url}" alt="icon${n}">
+          </label>`;
+        }).join("")}
+      </div>
+    </div>
     <p id="avMsg" class="fmsg" style="margin-bottom:16px"></p>
 
     <div class="fg">
@@ -1058,10 +1088,18 @@ function renderAccount(){
   const dnInp=$("#pDisplayName");
   dnInp.addEventListener("input",e=>$("#dnCount").textContent=e.target.value.length);
 
-  // アバター
-  $("#btnAvUpload").addEventListener("click",()=>$("#avFileInput").click());
-  $("#avFileInput").addEventListener("change",uploadAvatar);
-  $("#btnAvDel")?.addEventListener("click",deleteAvatar);
+  // アイコン選択
+  $("#btnShowIconPicker").addEventListener("click",()=>{
+    const area=$("#iconPickerArea");
+    area.style.display=area.style.display==="none"?"block":"none";
+  });
+  // ラジオ変更でプレビュー更新
+  document.querySelectorAll("input[name=iconPick]").forEach(r=>{
+    r.addEventListener("change",()=>{
+      const prev=$("#avPreview");
+      if(prev)prev.innerHTML=`<img src="${esc(r.value)}" alt="">`;
+    });
+  });
 
   const pa=$("#planActions");
   if(S.isStd){
@@ -1084,80 +1122,30 @@ function renderAccount(){
 }
 
 /* ===== アバターアップロード ===== */
-async function uploadAvatar(e){
-  const file=e.target.files[0];
-  if(!file)return;
-  // リセット
-  e.target.value="";
-  if(file.size>2*1024*1024){msg($("#avMsg"),"2MB以下の画像を選択してください。");return;}
-  msg($("#avMsg"),"アップロード中…","ok");
-  try{
-    const ext=file.name.split(".").pop().toLowerCase()||"jpg";
-    const path=`${S.user.id}/avatar.${ext}`;
-    // アップロード
-    const{error:upErr}=await sb.storage.from(AVATAR_BUCKET).upload(path,file,{
-      upsert:true,
-      contentType:file.type||"image/jpeg"
-    });
-    if(upErr){
-      console.error("storage upload error:",upErr);
-      msg($("#avMsg"),`アップロードに失敗しました。(${upErr.message})`);
-      return;
-    }
-    // 公開URL取得
-    const{data:urlData}=sb.storage.from(AVATAR_BUCKET).getPublicUrl(path);
-    const url=urlData.publicUrl+"?t="+Date.now();
-    // DB更新
-    const{error:dbErr}=await sb.from("profiles").update({avatar_url:url}).eq("id",S.user.id);
-    if(dbErr){msg($("#avMsg"),"保存に失敗しました。");return;}
-    S.profile.avatar_url=url;
-    msg($("#avMsg"),"保存しました！","ok");
-    const prev=$("#avPreview");
-    if(prev)prev.innerHTML=`<img src="${esc(url)}" alt="">`;
-    // 削除ボタン追加
-    if(!$("#btnAvDel")){
-      const actions=document.querySelector(".av-upload-actions");
-      if(actions){
-        const b=document.createElement("button");
-        b.className="btn-av-del";b.id="btnAvDel";b.textContent="削除する";
-        actions.appendChild(b);
-        b.addEventListener("click",deleteAvatar);
-      }
-    }
-  }catch(err){
-    console.error("uploadAvatar exception:",err);
-    msg($("#avMsg"),"予期しないエラーが発生しました。");
-  }
-}
-
-async function deleteAvatar(){
-  if(!confirm("アイコン画像を削除しますか？"))return;
-  await sb.from("profiles").update({avatar_url:null}).eq("id",S.user.id);
-  S.profile.avatar_url=null;
-  const prev=$("#avPreview");if(prev)prev.innerHTML=`<span>👤</span>`;
-  $("#btnAvDel")?.remove();
-}
 
 async function saveProfile(){
   const m=$("#profMsg");
   const displayName=$("#pDisplayName").value.trim();
-  // 表示名は必須
   if(!displayName){msg(m,"表示名を入力してください。");return;}
   const ageRaw=parseInt($("#pAge").value);
   const age=(!isNaN(ageRaw)&&ageRaw>=18&&ageRaw<=100)?ageRaw:null;
+  // 選択中のアイコン
+  const selectedIcon=document.querySelector("input[name=iconPick]:checked")?.value||null;
   const upd={
     display_name:displayName,
     age,
     work_style:$("#pWork").value||null,
     marital_status:$("#pMarital").value||null,
     living_situation:$("#pLiving").value||null,
-    bio:$("#pBio").value.trim()||null
+    bio:$("#pBio").value.trim()||null,
+    ...(selectedIcon?{avatar_url:selectedIcon}:{})
   };
   const btn=$("#btnSaveProf");btn.disabled=true;
   const{error}=await sb.from("profiles").update(upd).eq("id",S.user.id);
   btn.disabled=false;
   if(error){msg(m,"保存に失敗しました。");return;}
-  S.profile={...S.profile,...upd};msg(m,"保存しました！","ok");
+  S.profile={...S.profile,...upd};
+  msg(m,"保存しました！","ok");
 }
 async function changeEmail(){
   const m=$("#emailMsg"),ne=$("#emailNew").value.trim();
