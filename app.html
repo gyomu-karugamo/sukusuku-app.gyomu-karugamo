@@ -1665,11 +1665,6 @@ function formatMonthLabel(d) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-const CAT_LABEL = {
-  cooking:'🍳 料理', cleaning:'🧹 掃除', laundry:'👕 洗濯',
-  childcare:'👶 育児', shopping:'🛒 買い物', other:'📌 その他'
-};
-
 const REPEAT_LABEL = {
   daily:'毎日', weekdays:'平日', weekly:'毎週', monthly:'毎月'
 };
@@ -2067,7 +2062,7 @@ function renderAllTasks() {
         ${t.note ? `<div style="font-size:11px;color:var(--mist);margin-top:2px;">${escHtml(t.note)}</div>` : ''}
       </div>
       ${t.repeat && t.repeat!=='none' ? `<span class="task-repeat-badge">${REPEAT_LABEL[t.repeat]}</span>` : ''}
-      ${t.category ? `<span class="task-repeat-badge">${CAT_LABEL[t.category]||t.category}</span>` : ''}
+      ${t.category ? `<span class="task-repeat-badge">${getCategoryLabel(t.category)}</span>` : ''}
       <span class="badge ${t.assignee==='me' ? 'badge-orange' : 'badge-line'}">${t.assignee==='me' ? '自分' : '相手'}</span>
       <button class="btn" data-del="${t.id}" style="font-size:11px;padding:4px 8px;color:var(--error);border-color:rgba(192,57,43,0.2);margin-left:4px;">削除</button>
     </div>
@@ -2154,7 +2149,7 @@ function renderReport() {
   const maxCat = Math.max(1, ...Object.values(catCount));
   $('#categoryChart').innerHTML = Object.entries(catCount).map(([k, v]) => `
     <div class="bar-row">
-      <div class="bar-label" style="font-size:11px;">${CAT_LABEL[k]||k}</div>
+      <div class="bar-label" style="font-size:11px;">${getCategoryLabel(k)}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${v/maxCat*100}%"></div></div>
       <div class="bar-val">${v}</div>
     </div>
