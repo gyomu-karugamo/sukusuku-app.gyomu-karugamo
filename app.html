@@ -3274,7 +3274,7 @@ async function main() {
       if (res.ok) {
         const { error: insertErr } = await sb.from('line_sends').insert({
           user_id: currentUser.id,
-          send_type: 'today_notify'
+          send_type: 'remind_notify'
         });
         
         if (insertErr) {
