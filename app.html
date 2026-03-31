@@ -3138,10 +3138,17 @@ async function main() {
       });
     
       if (res.ok) {
-        await sb.from('line_sends').insert({
+        const { error: insertErr } = await sb.from('line_sends').insert({
           user_id: currentUser.id,
           send_type: 'today_notify'
         });
+        
+        if (insertErr) {
+          console.error('line_sends insert error:', insertErr);
+        } else {
+          lineSentCount = await countLineSentThisMonth();
+          renderUsageMeter();
+        }
     
         lineSentCount = await countLineSentThisMonth();
         renderUsageMeter();
@@ -3183,13 +3190,17 @@ async function main() {
       });
     
       if (res.ok) {
-        await sb.from('line_sends').insert({
+        const { error: insertErr } = await sb.from('line_sends').insert({
           user_id: currentUser.id,
-          send_type: 'remind_notify'
+          send_type: 'today_notify'
         });
-    
-        lineSentCount = await countLineSentThisMonth();
-        renderUsageMeter();
+        
+        if (insertErr) {
+          console.error('line_sends insert error:', insertErr);
+        } else {
+          lineSentCount = await countLineSentThisMonth();
+          renderUsageMeter();
+        }
     
         showMsg($('#lineSendMsg'), `リマインドを送りました（${undone.length}件未完了）`, 'success');
       } else {
@@ -3478,7 +3489,8 @@ async function main() {
       .eq('id', currentUser.id)
       .single();
   
-    const isEnabled = profN?.notify_enabled === true ? true : false;
+    const isPaidPlan = isStandard() || isPremium();
+    const isEnabled = isPaidPlan && profN?.notify_enabled === true;
   
     const chk = document.getElementById('notifyEnabled');
     if (chk) chk.checked = isEnabled;
