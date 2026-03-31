@@ -2072,24 +2072,23 @@ async function refreshLineStatus() {
 
 // ========== DB: LINE送信数 ==========
 async function countLineSentThisMonth() {
+  // JST基準で「今月」を判定し、その境界をUTCに変換してDB検索する
   const now = new Date();
+  const jstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
 
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const jstYear = jstNow.getUTCFullYear();
+  const jstMonth = jstNow.getUTCMonth(); // 0-11
 
-  const toDateTimeString = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}T00:00:00`;
-  };
+  // JSTの月初 00:00 を UTC に直す
+  const monthStartUtc = new Date(Date.UTC(jstYear, jstMonth, 1, 0, 0, 0) - 9 * 60 * 60 * 1000);
+  const nextMonthStartUtc = new Date(Date.UTC(jstYear, jstMonth + 1, 1, 0, 0, 0) - 9 * 60 * 60 * 1000);
 
   const { count, error } = await sb
     .from('line_sends')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', currentUser.id)
-    .gte('created_at', toDateTimeString(monthStart))
-    .lt('created_at', toDateTimeString(nextMonthStart));
+    .gte('created_at', monthStartUtc.toISOString())
+    .lt('created_at', nextMonthStartUtc.toISOString());
 
   if (error) {
     console.error('countLineSentThisMonth error:', error);
@@ -3218,7 +3217,7 @@ async function main() {
           .from('line_sends')
           .insert({
             user_id: currentUser.id,
-            send_type: 'today_notify'
+            send_type: 'remind_notify'
           })
           .select();
       
