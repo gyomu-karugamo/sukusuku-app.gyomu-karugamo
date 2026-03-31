@@ -2329,7 +2329,7 @@ async function deleteTask(id) {
   delete completions[id];
   await deleteTaskDB(id);
   renderAllTasks();
-  renderTodayTasks();
+  renderHome();
   showToast('タスクを削除しました');
 }
 
@@ -2823,19 +2823,21 @@ async function main() {
   const { data: { session: initSession } } = await sb.auth.getSession();
   let user = initSession?.user || null;
 
-  // セッションがない場合はgetUserも試みる（フォールバック）
+  // セッションからuserを取得（高速・ネットワーク不要）
+  const { data: { session: initSession } } = await sb.auth.getSession();
+  let user = initSession?.user || null;
   
+  // セッションがない場合はgetUserも試みる（フォールバック）
+  if (!user) {
     const { data: { user: u } } = await sb.auth.getUser();
     user = u || null;
   }
-
+  
   if (!user) {
     $('#notLoggedAlert').classList.add('show');
     document.querySelector('.site-header').style.display = 'none';
     document.querySelector('footer').style.display = 'none';
-
     document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
-  
     return;
   }
 
