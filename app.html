@@ -1561,19 +1561,22 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storageKey: 'karugamo-auth',
+    detectSessionInUrl: false,  // PKCEをコード側で制御するため false
   }
 });
 
-// PWA真っ白対策: フォアグラウンド復帰時にセッションを再確認
+// PWA真っ白対策: フォアグラウンド復帰時にセッション再確認
+// ※ currentUser はこの時点では未定義のため window 経由で参照
 document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible') {
+  if (document.visibilityState !== 'visible') return;
+  try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      // セッション切れ → ログイン画面へ
-      showSection('notLoggedAlert');
+    // ログイン済みだったのにセッションがなくなった場合だけリロード
+    if (!session && window._karuLoggedIn) {
+      location.reload();
     }
+  } catch(e) {
+    console.warn('session check error:', e);
   }
 });
 
@@ -2247,19 +2250,35 @@ async function main() {
   // タブセット
   $('#todayDateLabel') && ($('#todayDateLabel').textContent = getDateLabel());
 
-  // Auth
-  try {
-    // codeパラメータがある時だけPKCEセッション交換を実行
-    if (new URLSearchParams(location.search).has('code')) {
-      try { await sb.auth.exchangeCodeForSession(window.location.href); } catch(e) {}
-    }
-  } catch(e) {}
+  // PKCEコード交換（URLに ?code= がある場合のみ）
+  if (new URLSearchParams(location.search).has('code')) {
+    try {
+      await sb.auth.exchangeCodeForSession(window.location.href);
+      // コードを消してリロード（URLをクリーン）
+      const url = new URL(location.href);
+      url.searchParams.delete('code');
+      history.replaceState({}, '', url.toString());
+    } catch(e) { console.warn('exchangeCode:', e); }
+  }
 
-  let user = null;
-  for (let i = 0; i < 40; i++) {
+  // セッション変化を監視（ログアウト時はリロード）
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      location.reload();
+    }
+    if (event === 'TOKEN_REFRESHED' && session && currentUser) {
+      // トークン更新時は静かに更新するだけ
+    }
+  });
+
+  // セッションからuserを取得（高速・ネットワーク不要）
+  const { data: { session: initSession } } = await sb.auth.getSession();
+  let user = initSession?.user || null;
+
+  // セッションがない場合はgetUserも試みる（フォールバック）
+  if (!user) {
     const { data: { user: u } } = await sb.auth.getUser();
-    if (u) { user = u; break; }
-    await sleep(150);
+    user = u || null;
   }
 
   if (!user) {
@@ -2271,6 +2290,7 @@ async function main() {
   }
 
   currentUser = user;
+  window._karuLoggedIn = true; // PWA白画面対策フラグ
   $('#userEmail').textContent = user.email || '';
   $('#currentEmail').textContent = user.email || '';
 
