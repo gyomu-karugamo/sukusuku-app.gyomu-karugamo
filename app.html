@@ -1497,8 +1497,18 @@ footer a:hover { color: var(--duck); }
           <li class="disabled">LINE送信 無制限（Premium）</li>
         </ul>
         <div class="cta-row">
-          <button class="btn btn-primary" id="btnSubscribe">Standardプランへ（14日無料）→</button>
+          <button class="btn btn-primary" id="btnSubscribeStandard">Standardへ（14日無料）</button>
+          <button class="btn" id="btnSubscribePremium">Premiumへ</button>
         </div>
+        <div class="cta-row" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btnUpgradePremium" style="flex:1;">Premiumへ変更</button>
+          <button class="btn" id="btnDowngradeFree">Freeへ変更</button>
+        </div>
+        <div class="cta-row" style="gap:8px;flex-wrap:wrap;">
+          <button class="btn" id="btnDowngradeStandard">Standardへ変更</button>
+          <button class="btn btn-danger" id="btnCancelPremium">Freeへ変更</button>
+        </div>
+        
       </div>
       <div id="planStandardBox" class="plan-box standard" style="display:none;">
         <div class="plan-name">Standardプラン <span class="badge badge-orange">現在のプラン</span></div>
@@ -1979,7 +1989,7 @@ async function refreshLineStatus() {
   const connectedGuide = document.getElementById('lineConnectedGuide');
   const alertBanner  = document.getElementById('lineAlertBanner');
 
-  if (lineConnected) {
+  
     // 上のステータスバッジは不要なので非表示
     if (statusBox)     statusBox.style.display = 'none';
     if (guide)         guide.style.display = 'none';
@@ -2864,7 +2874,30 @@ function renderAccount() {
   function canViewReport() {
   return isStandard() || isPremium();
 }
+function renderRepeatGate() {
+  const repeatSel = document.getElementById('repeatType');
+  const addMsg = document.getElementById('taskAddMsg');
+  if (!repeatSel) return;
 
+  const locked = !isStandard() && !isPremium();
+
+  [...repeatSel.options].forEach(opt => {
+    if (opt.value === 'none') {
+      opt.disabled = false;
+    } else {
+      opt.disabled = locked;
+    }
+  });
+
+  if (locked && repeatSel.value !== 'none') {
+    repeatSel.value = 'none';
+  }
+
+  if (locked && addMsg) {
+    addMsg.textContent = '繰り返しタスクはStandardプラン以上で利用できます。';
+    addMsg.className = 'msg';
+  }
+}
 function renderNotifyGate() {
   const card = document.getElementById('notifySettingCard');
   const lock = document.getElementById('notifyPlanLock');
@@ -2894,6 +2927,31 @@ function renderNotifyGate() {
     if (timeRow) timeRow.style.display = 'none';
     if (timeInput) timeInput.disabled = true;
     if (saveBtn) saveBtn.disabled = true;
+  }
+}
+
+function renderRepeatGate() {
+  const repeatSel = document.getElementById('repeatType');
+  const addMsg = document.getElementById('taskAddMsg');
+  if (!repeatSel) return;
+
+  const locked = !isStandard() && !isPremium();
+
+  [...repeatSel.options].forEach(opt => {
+    if (opt.value === 'none') {
+      opt.disabled = false;
+    } else {
+      opt.disabled = locked;
+    }
+  });
+
+  if (locked && repeatSel.value !== 'none') {
+    repeatSel.value = 'none';
+  }
+
+  if (locked && addMsg) {
+    addMsg.textContent = '繰り返しタスクはStandardプラン以上で利用できます。';
+    addMsg.className = 'msg';
   }
 }
 
@@ -2986,6 +3044,7 @@ async function main() {
   renderAllTasks();
   renderAccount();
   renderReportGate();
+  renderRepeatGate();
 
   // 名前読み込み（Supabase優先、なければlocalStorage）
   {
@@ -3069,20 +3128,34 @@ async function main() {
     const btn = $('#sendTodayLineBtn');
     btn.disabled = true;
     // 通知メッセージ（タスクリストではなくリッチメニューに誘導）
-    const senderName = getMyLabel();
-    const notifyMsg = `${senderName}さんがタスクを更新しました！
-メニューの「タスクを確認」を押して確認しましょう！`;
+    const senderName = myName ? `${myName}さん` : 'パートナー';
+    const notifyMsg = `${senderName}がタスクを更新しました！
+    メニューの「タスクを確認」を押して確認しましょう！`;
     // Supabase Edge Function 経由でpush送信
     const { data: conn } = await sb.from('line_connections').select('line_user_id').eq('user_id', currentUser.id).single();
     if (conn?.line_user_id) {
       const { data: sess } = await sb.auth.getSession();
       const token = sess?.session?.access_token;
-      await fetch('https://gdcnxuymqbzkqfrcvpbe.functions.supabase.co/send-line-notify', {
+    
+      const res = await fetch('https://gdcnxuymqbzkqfrcvpbe.functions.supabase.co/send-line-notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ line_user_id: conn.line_user_id, message: notifyMsg })
       });
-      showMsg($('#lineSendMsg'), 'パートナーに通知を送りました 💬', 'success');
+    
+      if (res.ok) {
+        await sb.from('line_sends').insert({
+          user_id: currentUser.id,
+          send_type: 'today_notify'
+        });
+    
+        lineSentCount = await countLineSentThisMonth();
+        renderUsageMeter();
+    
+        showMsg($('#lineSendMsg'), 'パートナーに通知を送りました 💬', 'success');
+      } else {
+        showMsg($('#lineSendMsg'), '送信に失敗しました', 'error');
+      }
     } else {
       showMsg($('#lineSendMsg'), 'LINE連携が必要です', 'error');
     }
@@ -3108,12 +3181,26 @@ async function main() {
       const token = sess?.session?.access_token;
       const undoneList = undone.map(t => '・' + t.name).join('\n');
       const remindMsg = `🔔 まだ完了していないタスクがあります！\n\n${undoneList}\n\nメニューの「タスクを確認」から完了報告ができます 🦆`;
-      await fetch('https://gdcnxuymqbzkqfrcvpbe.functions.supabase.co/send-line-notify', {
+    
+      const res = await fetch('https://gdcnxuymqbzkqfrcvpbe.functions.supabase.co/send-line-notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ line_user_id: conn.line_user_id, message: remindMsg })
       });
-      showMsg($('#lineSendMsg'), `リマインドを送りました（${undone.length}件未完了）`, 'success');
+    
+      if (res.ok) {
+        await sb.from('line_sends').insert({
+          user_id: currentUser.id,
+          send_type: 'remind_notify'
+        });
+    
+        lineSentCount = await countLineSentThisMonth();
+        renderUsageMeter();
+    
+        showMsg($('#lineSendMsg'), `リマインドを送りました（${undone.length}件未完了）`, 'success');
+      } else {
+        showMsg($('#lineSendMsg'), '送信に失敗しました', 'error');
+      }
     } else {
       showMsg($('#lineSendMsg'), 'LINE連携が必要です', 'error');
     }
@@ -3222,6 +3309,12 @@ async function main() {
     const repeat = $('#repeatType').value;
     const category = $('#taskCategory').value;
     const note = $('#taskNote').value.trim();
+
+    if (!isStandard() && !isPremium() && repeat !== 'none') {
+      showMsg($('#taskAddMsg'), '繰り返しタスクはStandardプラン以上で利用できます。', 'error');
+      goTab('account');
+      return;
+    }
 
     if (!name) { showMsg($('#taskAddMsg'), 'タスク名を入力してください', 'error'); return; }
 
@@ -3397,18 +3490,20 @@ async function main() {
   if (lineConnected) {
     const notifyCard = document.getElementById('notifySettingCard');
     if (notifyCard) notifyCard.style.display = 'block';
-
-    // Supabaseから保存済み設定を読み込む（デフォルトは無効）
+  
     const { data: profN } = await sb.from('profiles')
       .select('notify_time, notify_enabled')
-      .eq('id', currentUser.id).single();
-    const isEnabled = profN?.notify_enabled === true; // デフォルト false
+      .eq('id', currentUser.id)
+      .single();
+  
+    const isEnabled = profN?.notify_enabled === true ? true : false;
+  
     const chk = document.getElementById('notifyEnabled');
     if (chk) chk.checked = isEnabled;
-    if (profN?.notify_time) {
-      const timeEl = document.getElementById('notifyTime');
-      if (timeEl) timeEl.value = profN.notify_time;
-    }
+  
+    const timeEl = document.getElementById('notifyTime');
+    if (timeEl) timeEl.value = profN?.notify_time || '07:00';
+  
     applyNotifyToggle(isEnabled);
   }
 
