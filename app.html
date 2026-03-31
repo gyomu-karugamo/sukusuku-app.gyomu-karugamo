@@ -1048,13 +1048,19 @@ footer a:hover { color: var(--orange); }
     <!-- 日付ナビ + タスクビュー -->
     <div class="card">
       <!-- 日付ナビゲーション -->
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;">
-        <button id="goTodayHomeBtn" style="display:none;font-size:10px;color:var(--mist);background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;cursor:pointer;flex-shrink:0;white-space:nowrap;">今日</button>
-        <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
+      <div style="display:flex;align-items:center;margin-bottom:16px;position:relative;">
+        <!-- 左：今日ボタン（固定幅スペース確保） -->
+        <div style="width:52px;flex-shrink:0;display:flex;align-items:center;">
+          <button id="goTodayHomeBtn" style="display:none;font-size:10px;color:var(--mist);background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;cursor:pointer;white-space:nowrap;">今日</button>
+        </div>
+        <!-- 中央：← 日付 →（常に中央固定） -->
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;">
           <button class="btn" id="homePrevDay" style="padding:5px 11px;font-size:16px;">‹</button>
-          <div class="card-title" id="todayDateLabel" style="min-width:120px;text-align:center;margin:0;">今日のタスク</div>
+          <div class="card-title" id="todayDateLabel" style="min-width:110px;text-align:center;margin:0;">今日のタスク</div>
           <button class="btn" id="homeNextDay" style="padding:5px 11px;font-size:16px;">›</button>
         </div>
+        <!-- 右：左と同じ幅のスペース（バランス） -->
+        <div style="width:52px;flex-shrink:0;"></div>
       </div>
 
 
@@ -1189,13 +1195,7 @@ footer a:hover { color: var(--orange); }
       <div style="margin-bottom:12px;">
         <div style="font-family:'Noto Serif JP',serif;font-size:17px;font-weight:600;margin-bottom:10px;">タスク一覧</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:6px;background:var(--cream-dark);border-radius:999px;padding:4px 10px 4px 12px;">
-            <span style="font-size:12px;color:var(--mist);white-space:nowrap;">完了済み</span>
-            <select id="taskViewMode" style="font-size:12px;background:transparent;border:none;outline:none;color:var(--brown);cursor:pointer;padding:0 2px;">
-              <option value="active">非表示</option>
-              <option value="all">表示</option>
-            </select>
-          </div>
+
           <div style="display:flex;gap:4px;">
             <button class="btn" id="filterAll"     style="font-size:12px;padding:5px 12px;border-radius:999px;">すべて</button>
             <button class="btn" id="filterMe"      style="font-size:12px;padding:5px 12px;border-radius:999px;" id="filterMeBtn">自分</button>
@@ -1256,16 +1256,14 @@ footer a:hover { color: var(--orange); }
     <!-- C: 連続記録（ストリーク） -->
     <div class="card">
       <div class="sec-label" style="margin-bottom:10px;">連続完了記録</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div style="text-align:center;padding:12px;background:var(--cream-dark);border-radius:var(--radius-sm);">
-          <div style="font-size:28px;font-weight:600;color:var(--orange);" id="rptStreak">–</div>
-          <div style="font-size:11px;color:var(--mist);margin-top:4px;">現在の連続日数</div>
-        </div>
-        <div style="text-align:center;padding:12px;background:var(--cream-dark);border-radius:var(--radius-sm);">
-          <div style="font-size:28px;font-weight:600;color:var(--orange);" id="rptBestStreak">–</div>
-          <div style="font-size:11px;color:var(--mist);margin-top:4px;">今月の最長連続</div>
+      <div style="display:flex;align-items:center;gap:16px;padding:12px;background:var(--cream-dark);border-radius:var(--radius-sm);">
+        <div style="font-size:36px;font-weight:600;color:var(--orange);" id="rptBestStreak">–</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;">今月の最長連続完了</div>
+          <div style="font-size:11px;color:var(--mist);margin-top:2px;">1日に1件以上完了した日が連続した日数</div>
         </div>
       </div>
+      <div id="rptStreak" style="display:none;"></div>
       <!-- 週ごとの完了率グラフ（A案） -->
       <div style="margin-top:14px;">
         <div style="font-size:11px;color:var(--mist);margin-bottom:8px;">週ごとの完了率</div>
@@ -1300,7 +1298,7 @@ footer a:hover { color: var(--orange); }
       <div class="sec-label" style="margin-bottom:10px;">レポートをシェア</div>
       <canvas id="reportCanvas" style="display:none;max-width:100%;border-radius:12px;margin-bottom:12px;"></canvas>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-        <button id="generateReportImgBtn" class="btn btn-primary" style="font-size:13px;">画像を生成</button>
+        <button id="generateReportImgBtn" class="btn btn-primary" style="font-size:13px;">シェア用画像を生成</button>
         <a id="downloadReportBtn" class="btn" style="font-size:13px;display:none;" download="karugamo-report.png">ダウンロード</a>
         <a id="shareXBtn" class="btn" target="_blank" style="font-size:13px;background:#000;color:#fff;border-color:#000;display:none;">𝕏 でシェア</a>
       </div>
@@ -2509,13 +2507,10 @@ function renderReport() {
       `<div style="flex:1;text-align:center;font-size:9px;color:var(--mist);">${w.label}</div>`).join('');
   }
 
-  // B: カテゴリ別（完了数）
+  // B: カテゴリ別（登録タスク数ベース・安定表示）
   const catCount = {};
-  days.forEach(ds => {
-    const comp3 = completions_by_date?.[ds] || {};
-    tasks.forEach(t => {
-      if (comp3[t.id] && t.category) catCount[t.category] = (catCount[t.category]||0) + 1;
-    });
+  tasks.forEach(t => {
+    if (t.category) catCount[t.category] = (catCount[t.category] || 0) + 1;
   });
   const maxCat = Math.max(1, ...Object.values(catCount).map(Number));
   const catChart = document.getElementById('categoryChart');
@@ -2532,118 +2527,131 @@ function renderReport() {
 // ========================================
 // REPORT: 画像生成 & SNS共有
 // ========================================
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
 function generateReportImage() {
-  const canvas  = document.getElementById('reportCanvas');
-  const ctx     = canvas.getContext('2d');
-  const month   = document.getElementById('reportMonthLabel')?.textContent || '';
-  const myDone  = document.getElementById('rptMyTotal')?.textContent || '0';
-  const ptDone  = document.getElementById('rptPartnerTotal')?.textContent || '0';
-  const streak  = document.getElementById('rptStreak')?.textContent || '0日';
-  const myPct   = document.getElementById('myLoadPct')?.textContent || '–';
-  const ptPct   = document.getElementById('partnerLoadPct')?.textContent || '–';
-  const myLbl   = getMyLabel();
-  const ptLbl   = getPartnerLabel();
+  try {
+    const canvas = document.getElementById('reportCanvas');
+    if (!canvas) { showToast('canvasが見つかりません', 'error'); return; }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { showToast('このブラウザでは画像生成できません', 'error'); return; }
 
-  // キャンバスサイズ
-  canvas.width  = 800;
-  canvas.height = 440;
+    const month  = document.getElementById('reportMonthLabel')?.textContent || '';
+    const myDone = document.getElementById('rptMyTotal')?.textContent || '0';
+    const ptDone = document.getElementById('rptPartnerTotal')?.textContent || '0';
+    const best   = document.getElementById('rptBestStreak')?.textContent || '–';
+    const myPct  = document.getElementById('myLoadPct')?.textContent || '50%';
+    const ptPct  = document.getElementById('partnerLoadPct')?.textContent || '50%';
+    const myLbl  = getMyLabel();
+    const ptLbl  = getPartnerLabel();
 
-  // 背景グラデーション（オレンジ）
-  const grad = ctx.createLinearGradient(0, 0, 800, 440);
-  grad.addColorStop(0,   '#e8632a');
-  grad.addColorStop(1,   '#f5a06e');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.roundRect(0, 0, 800, 440, 20);
-  ctx.fill();
+    canvas.width  = 800;
+    canvas.height = 420;
 
-  // 半透明パネル
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.beginPath();
-  ctx.roundRect(30, 90, 740, 310, 14);
-  ctx.fill();
+    // 背景
+    const grad = ctx.createLinearGradient(0, 0, 800, 420);
+    grad.addColorStop(0, '#e8632a');
+    grad.addColorStop(1, '#f5a06e');
+    ctx.fillStyle = grad;
+    roundRect(ctx, 0, 0, 800, 420, 0);
+    ctx.fill();
 
-  // アプリ名
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font      = '600 16px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('業務かるがも', 400, 36);
+    // 白パネル
+    ctx.fillStyle = 'rgba(255,255,255,0.13)';
+    roundRect(ctx, 30, 85, 740, 300, 12);
+    ctx.fill();
 
-  // 月
-  ctx.fillStyle = 'white';
-  ctx.font      = '700 32px sans-serif';
-  ctx.fillText(month + ' のレポート', 400, 74);
+    // アプリ名
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.font = '500 15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('業務かるがも', 400, 34);
 
-  // 完了数
-  ctx.fillStyle = 'white';
-  ctx.font      = '600 14px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText(myLbl + ' 完了タスク', 70, 130);
-  ctx.font      = '700 48px sans-serif';
-  ctx.fillText(myDone + '件', 70, 185);
+    // 月タイトル
+    ctx.fillStyle = 'white';
+    ctx.font = '700 28px sans-serif';
+    ctx.fillText(month + ' のレポート', 400, 70);
 
-  ctx.font      = '600 14px sans-serif';
-  ctx.fillText(ptLbl + ' 完了タスク', 280, 130);
-  ctx.font      = '700 48px sans-serif';
-  ctx.fillText(ptDone + '件', 280, 185);
+    // 数値カード3つ
+    const cards = [
+      { label: myLbl + ' 完了', val: myDone + '件', x: 90 },
+      { label: ptLbl + ' 完了', val: ptDone + '件', x: 320 },
+      { label: '最長連続',       val: best,           x: 550 },
+    ];
+    cards.forEach(({ label, val, x }) => {
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '500 13px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(label, x, 125);
+      ctx.fillStyle = 'white';
+      ctx.font = '700 40px sans-serif';
+      ctx.fillText(val, x, 175);
+    });
 
-  // 連続記録
-  ctx.font      = '600 14px sans-serif';
-  ctx.fillText('連続完了', 490, 130);
-  ctx.font      = '700 48px sans-serif';
-  ctx.fillText(streak, 490, 185);
+    // バランスバー
+    const ratio = Math.max(0, Math.min(1, parseInt(myPct) / 100 || 0.5));
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    roundRect(ctx, 60, 210, 680, 10, 5);
+    ctx.fill();
+    if (ratio > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      roundRect(ctx, 60, 210, 680 * ratio, 10, 5);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = '400 12px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(myLbl + ' ' + myPct + '  ' + ptLbl + ' ' + ptPct, 60, 238);
 
-  // 担当バランスバー
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
-  ctx.beginPath();
-  ctx.roundRect(60, 220, 680, 10, 5);
-  ctx.fill();
+    // 区切り
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(60, 252); ctx.lineTo(740, 252); ctx.stroke();
 
-  const myRatio = parseInt(myPct) / 100;
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.beginPath();
-  ctx.roundRect(60, 220, 680 * myRatio, 10, 5);
-  ctx.fill();
+    // タグライン
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.font = '400 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('2人のタスクを一緒に管理', 400, 278);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = '400 12px sans-serif';
+    ctx.fillText('app.gyomu-karugamo.com', 400, 300);
 
-  ctx.fillStyle = 'white';
-  ctx.font      = '500 13px sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText(`${myLbl} ${myPct}   ${ptLbl} ${ptPct}`, 60, 252);
+    // 表示
+    canvas.style.display = 'block';
+    const dl   = document.getElementById('downloadReportBtn');
+    const xBtn = document.getElementById('shareXBtn');
+    const hint = document.getElementById('shareHint');
+    if (dl) { dl.href = canvas.toDataURL('image/png'); dl.style.display = 'inline-block'; }
 
-  // 区切り線
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-  ctx.lineWidth   = 1;
-  ctx.beginPath();
-  ctx.moveTo(60, 268);
-  ctx.lineTo(740, 268);
-  ctx.stroke();
-
-  // タグライン
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.font      = '400 13px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('2人のタスクを一緒に管理 🦆', 400, 296);
-
-  // URL
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.font      = '400 12px sans-serif';
-  ctx.fillText('app.gyomu-karugamo.com', 400, 320);
-
-  // Xシェアテキスト
-  const shareText = `${month} のタスクレポート📊
-${myLbl}: ${myDone}件完了 / ${ptLbl}: ${ptDone}件完了
-連続記録: ${streak} 🦆
-#業務かるがも`;
-  const shareUrl  = 'https://app.gyomu-karugamo.com';
-  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-
-  canvas.style.display = 'block';
-  const dl = document.getElementById('downloadReportBtn');
-  const xBtn = document.getElementById('shareXBtn');
-  const hint = document.getElementById('shareHint');
-  if (dl) { dl.href = canvas.toDataURL('image/png'); dl.style.display = 'inline-block'; }
-  if (xBtn) { xBtn.href = xUrl; xBtn.style.display = 'inline-block'; }
-  if (hint) hint.textContent = '※ Xでシェアする際は画像をダウンロードしてツイートに添付してください';
+    const shareText = month + ' のタスクレポート📊
+'
+      + myLbl + ': ' + myDone + '件完了 / ' + ptLbl + ': ' + ptDone + '件完了
+'
+      + '最長連続: ' + best + ' 🦆
+#業務かるがも';
+    if (xBtn) {
+      xBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText)
+        + '&url=' + encodeURIComponent('https://app.gyomu-karugamo.com');
+      xBtn.style.display = 'inline-block';
+    }
+    if (hint) hint.textContent = '※ Xでシェアするには画像をダウンロードしてツイートに添付してください';
+  } catch(e) {
+    console.error('generateReportImage error:', e);
+    showToast('画像生成に失敗しました: ' + e.message, 'error');
+  }
 }
 
 // ========================================
@@ -2939,9 +2947,6 @@ async function main() {
     showMsg($('#taskAddMsg'), 'タスクを追加しました', 'success');
     setTimeout(() => showMsg($('#taskAddMsg'), ''), 2000);
   });
-
-  // 完了表示切り替え
-  $('#taskViewMode')?.addEventListener('change', () => renderAllTasks());
 
   // フィルターボタン
   ['filterAll','filterMe','filterPartner'].forEach(id => {
@@ -3289,22 +3294,14 @@ async function main() {
 main();
 </script>
 
-<!-- Service Worker -->
+<!-- Service Worker: PWA白画面問題のため無効化 -->
 <script>
+// 既存のSWとキャッシュを全削除（白画面の原因）
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    // 既存のSWを全て解除してキャッシュ問題を防ぐ
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(r => r.unregister());
-    });
-    if ('caches' in window) {
-      caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-    }
-    // クリーンになってから改めて登録
-    setTimeout(() => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    }, 500);
-  });
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+}
+if ('caches' in window) {
+  caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
 }
 </script>
 
