@@ -2171,8 +2171,8 @@ const APP_URL     = 'https://app.gyomu-karugamo.com/app.html';
 async function startCheckout(plan) {
   if (!currentUser) return;
 
-  const { data: sess } = await sb.auth.getSession();
-  const token = sess?.session?.access_token;
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session?.access_token;
   if (!token) { showToast('ログインし直してください', 'error'); return; }
 
   // ボタンを一時無効化
@@ -2224,11 +2224,12 @@ async function openPortal() {
     showToast('お客様情報が見つかりません。サポートにお問い合わせください。', 'error');
     return;
   }
-  const { data: sess } = await sb.auth.getSession();
-  const token = sess?.session?.access_token;
+
+  // getSession() はキャッシュを返すことがあるため getUser() でトークンを再取得
+  const { data: { session } } = await sb.auth.getSession();
+  const token = session?.access_token;
   if (!token) { showToast('ログインし直してください', 'error'); return; }
 
-  // ボタンを一時的に無効化してローディング表示
   const portalBtns = ['btnUpgradePremium','btnDowngradeStandard','btnCancel','btnCancelPremium'];
   portalBtns.forEach(id => {
     const btn = document.getElementById(id);
