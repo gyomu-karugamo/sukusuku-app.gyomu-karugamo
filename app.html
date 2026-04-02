@@ -2875,7 +2875,7 @@ function renderReport() {
       catCount[t.category] = (catCount[t.category] || 0) + 1;
     });
   });
-  
+
   const catChart = document.getElementById('categoryChart');
   if (catChart) {
     const entries = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
@@ -2884,7 +2884,7 @@ function renderReport() {
       catChart.innerHTML = `<div style="font-size:13px;color:var(--mist);">データがありません</div>`;
     } else {
       const total = entries.reduce((sum, [, v]) => sum + v, 0);
-      const colors = ['#c97b63', '#ddb064', '#a487c8', '#d88fa2', '#8ea6c8'];
+      const colors = ['#c97b63', '#ddb064', '#a487c8', '#d88fa2', '#8ea6c8', '#c98f63', '#9aa7b8'];
   
       let cumulative = 0;
       const segments = entries.map(([key, value], i) => {
@@ -2895,7 +2895,7 @@ function renderReport() {
       }).join(', ');
   
       catChart.innerHTML = `
-        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap;">
           <div style="
             width:140px;
             height:140px;
@@ -2904,16 +2904,21 @@ function renderReport() {
             flex-shrink:0;
           "></div>
   
-          <div style="flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px;">
+          <div style="
+            flex:1;
+            min-width:240px;
+            display:grid;
+            grid-template-columns:repeat(2, minmax(140px, 1fr));
+            gap:10px 18px;
+            align-items:start;
+          ">
             ${entries.map(([key, value], i) => {
               const pct = Math.round((value / total) * 100);
               return `
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;">
-                  <div style="display:flex;align-items:center;gap:8px;min-width:0;">
-                    <span style="width:10px;height:10px;border-radius:50%;background:${colors[i % colors.length]};flex-shrink:0;"></span>
-                    <span>${getCategoryLabel(key)}</span>
-                  </div>
-                  <div style="color:var(--mist);white-space:nowrap;">${pct}%</div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;min-width:0;">
+                  <span style="width:10px;height:10px;border-radius:50%;background:${colors[i % colors.length]};flex-shrink:0;"></span>
+                  <span style="color:var(--brown);">${getCategoryLabel(key)}</span>
+                  <span style="color:var(--mist);margin-left:4px;white-space:nowrap;">${pct}%</span>
                 </div>
               `;
             }).join('')}
