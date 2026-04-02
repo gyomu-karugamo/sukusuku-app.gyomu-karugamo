@@ -2174,8 +2174,8 @@ async function loadLineConnection() {
   const { data, error } = await sb.from('line_connections')
     .select('id, line_user_id, access_token')
     .eq('user_id', currentUser.id)
-    .single();
-  if (error) return null;
+    .maybeSingle();
+  if (error) { console.error('loadLineConnection error:', error); return null; }
   return data;
 }
 
@@ -3428,7 +3428,7 @@ async function mainInit(user) {
     btn.disabled = true;
     const senderName = myName ? `${myName}さん` : 'パートナー';
     const notifyMsg = `${senderName}がタスクを更新しました！メニューの「タスクを確認」か「今日」と送信してください。`;
-    const { data: conn } = await sb.from('line_connections').select('line_user_id').eq('user_id', currentUser.id).single();
+    const { data: conn } = await sb.from('line_connections').select('line_user_id').eq('user_id', currentUser.id).maybeSingle();
     if (conn?.line_user_id) {
       const { data: sess } = await sb.auth.getSession();
       const token = sess?.session?.access_token;
@@ -3490,7 +3490,7 @@ async function mainInit(user) {
     }
     const rbtn = $('#sendRemindBtn');
     if (rbtn) rbtn.disabled = true;
-    const { data: conn } = await sb.from('line_connections').select('line_user_id').eq('user_id', currentUser.id).single();
+    const { data: conn } = await sb.from('line_connections').select('line_user_id').eq('user_id', currentUser.id).maybeSingle();
     if (conn?.line_user_id) {
       const { data: sess } = await sb.auth.getSession();
       const token = sess?.session?.access_token;
