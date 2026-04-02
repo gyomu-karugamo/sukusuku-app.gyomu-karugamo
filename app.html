@@ -1344,7 +1344,10 @@ footer a:hover { color: var(--duck); }
       <div class="sec-label" style="margin-bottom:10px;">レポートをシェア</div>
       <canvas id="reportCanvas" style="display:none;max-width:100%;border-radius:12px;margin-bottom:12px;"></canvas>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-        <button id="generateReportImgBtn" class="btn btn-primary" style="font-size:13px;">シェア用画像を生成</button>
+        <button id="generateReportImgBtn" class="btn btn-primary" style="font-size:13px;display:flex;align-items:center;gap:6px;">
+          <span>シェア画像を生成</span>
+          <img src="/assets/reload.png" alt="画像" style="width:14px;height:14px;object-fit:contain;vertical-align:middle;">
+        </button>
         <a id="downloadReportBtn" class="btn" style="font-size:13px;display:none;" download="karugamo-report.png">ダウンロード</a>
         <button id="shareNativeBtn" class="btn" style="font-size:13px;display:none;background:#000;color:#fff;border-color:#000;">シェア</button>
       </div>
@@ -2988,6 +2991,31 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+function roundRectLeft(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, h / 2, w / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w, y);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+  ctx.closePath();
+}
+
+function roundRectRight(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, h / 2, w / 2);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.closePath();
+}
+
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -3020,9 +3048,6 @@ async function generateReportImage() {
     const myLabelDisplay = getShareMyLabel();
     const ptLabelDisplay = getSharePartnerLabel();
 
-    const myActualLabel = getMyLabel();
-    const ptActualLabel = getPartnerLabel();
-
     const myRate = document.getElementById('myRatePct')?.textContent || '0%';
     const ptRate = document.getElementById('partnerRatePct')?.textContent || '0%';
     const myLoad = document.getElementById('myLoadPct')?.textContent || '50%';
@@ -3032,15 +3057,6 @@ async function generateReportImage() {
     const ptRateNum = Math.max(0, Math.min(100, parseInt(ptRate, 10) || 0));
     const myLoadNum = Math.max(0, Math.min(100, parseInt(myLoad, 10) || 0));
 
-    // カテゴリ割合（画面の内容をそのまま使う）
-    const categoryRows = [...document.querySelectorAll('#categoryChart > div > div:last-child > div')].map(row => {
-      const name = row.querySelector('span:nth-child(2)')?.textContent || '';
-      const pct = row.querySelector('div:last-child')?.textContent || '';
-      const colorDot = row.querySelector('span')?.style.background || '#ccc';
-      return { name, pct, color: colorDot };
-    });
-
-    // 円グラフ自体の比率は renderReport と同じ集計で計算
     const y = reportMonth.getFullYear();
     const m = reportMonth.getMonth();
     const from = new Date(y, m, 1);
@@ -3054,6 +3070,7 @@ async function generateReportImage() {
       days.push(ds);
     }
 
+    // カテゴリ割合
     const catCount = {};
     days.forEach(ds => {
       const dayTasks = getTasksForDate(ds);
@@ -3062,22 +3079,18 @@ async function generateReportImage() {
         catCount[t.category] = (catCount[t.category] || 0) + 1;
       });
     });
-
     const categoryEntries = Object.entries(catCount).sort((a, b) => b[1] - a[1]);
-    const pieColors = ['#c97b63', '#ddb064', '#a487c8', '#d88fa2', '#8ea6c8'];
+    const pieColors = ['#c97b63', '#ddb064', '#a487c8', '#d88fa2', '#8ea6c8', '#c98f63', '#9aa7b8'];
 
-    // カテゴリ別担当バランス（完了件数ベースをここで再計算）
+    // カテゴリ別担当バランス（完了件数ベース）
     const catMyCount = {};
     const catPtCount = {};
-
     days.forEach(ds => {
       const dayTasks = getTasksForDate(ds);
       const comp = completions_by_date?.[ds] || {};
-
       dayTasks.forEach(t => {
         if (!t.category) return;
         if (!comp[t.id]) return;
-
         if (t.assignee === 'me') {
           catMyCount[t.category] = (catMyCount[t.category] || 0) + 1;
         } else if (t.assignee === 'partner') {
@@ -3085,45 +3098,44 @@ async function generateReportImage() {
         }
       });
     });
-
     const allCatKeys = [...new Set([...Object.keys(catMyCount), ...Object.keys(catPtCount)])];
 
     canvas.width = 1080;
-    canvas.height = 1480;
+    canvas.height = 1560;
 
     // 背景
-    const bg = ctx.createLinearGradient(0, 0, 1080, 1480);
+    const bg = ctx.createLinearGradient(0, 0, 1080, 1560);
     bg.addColorStop(0, '#f6f2eb');
     bg.addColorStop(1, '#eef3f1');
     ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, 1080, 1480);
+    ctx.fillRect(0, 0, 1080, 1560);
 
-    // 本体
-    ctx.fillStyle = 'rgba(255,255,255,0.94)';
-    roundRect(ctx, 34, 34, 1012, 1412, 30);
+    // 本体カード
+    ctx.fillStyle = 'rgba(255,255,255,0.96)';
+    roundRect(ctx, 34, 34, 1012, 1492, 30);
     ctx.fill();
 
     // 上部タイトル
     ctx.textAlign = 'center';
     ctx.fillStyle = '#8a9a96';
     ctx.font = '500 28px sans-serif';
-    ctx.fillText('Monthly Report', 540, 100);
+    ctx.fillText('Monthly Report', 540, 96);
 
     ctx.fillStyle = '#1a1714';
-    ctx.font = '700 46px sans-serif';
-    ctx.fillText(monthText, 540, 156);
+    ctx.font = '700 48px sans-serif';
+    ctx.fillText(monthText, 540, 154);
 
     function drawSectionTitle(text, subtext, y) {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#4a7c6f';
-      ctx.font = '700 26px sans-serif';
+      ctx.font = '700 28px sans-serif';
       ctx.fillText(text, 70, y);
 
       if (subtext) {
         const titleWidth = ctx.measureText(text).width;
         ctx.fillStyle = '#8a9a96';
         ctx.font = '500 18px sans-serif';
-        ctx.fillText(subtext, 70 + titleWidth + 12, y);
+        ctx.fillText(subtext, 70 + titleWidth + 14, y);
       }
     }
 
@@ -3132,86 +3144,95 @@ async function generateReportImage() {
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#8a9a96';
-    ctx.font = '500 20px sans-serif';
-    ctx.fillText(myLabelDisplay, 70, 300);
+    ctx.font = '500 21px sans-serif';
+    ctx.fillText(myLabelDisplay, 70, 306);
 
     ctx.fillStyle = '#e7e0d5';
-    roundRect(ctx, 170, 284, 780, 16, 8);
+    roundRect(ctx, 170, 288, 780, 16, 8);
     ctx.fill();
-
     if (myRateNum > 0) {
       ctx.fillStyle = '#4a7c6f';
-      roundRect(ctx, 170, 284, 780 * (myRateNum / 100), 16, 8);
+      roundRect(ctx, 170, 288, 780 * (myRateNum / 100), 16, 8);
       ctx.fill();
     }
 
-    ctx.fillStyle = '#1a1714';
-    ctx.font = '500 20px sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(myRate, 995, 300);
+    ctx.fillStyle = '#1a1714';
+    ctx.font = '500 21px sans-serif';
+    ctx.fillText(myRate, 995, 306);
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#8a9a96';
-    ctx.font = '500 20px sans-serif';
-    ctx.fillText(ptLabelDisplay, 70, 355);
+    ctx.font = '500 21px sans-serif';
+    ctx.fillText(ptLabelDisplay, 70, 372);
 
     ctx.fillStyle = '#e7e0d5';
-    roundRect(ctx, 170, 339, 780, 16, 8);
+    roundRect(ctx, 170, 354, 780, 16, 8);
     ctx.fill();
-
     if (ptRateNum > 0) {
       ctx.fillStyle = '#4f668f';
-      roundRect(ctx, 170, 339, 780 * (ptRateNum / 100), 16, 8);
+      roundRect(ctx, 170, 354, 780 * (ptRateNum / 100), 16, 8);
       ctx.fill();
     }
 
-    ctx.fillStyle = '#1a1714';
-    ctx.font = '500 20px sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(ptRate, 995, 355);
+    ctx.fillStyle = '#1a1714';
+    ctx.font = '500 21px sans-serif';
+    ctx.fillText(ptRate, 995, 372);
 
     // 担当バランス
-    drawSectionTitle('担当バランス', '完了件数ベース', 470);
+    drawSectionTitle('担当バランス', '完了件数ベース', 500);
 
     ctx.fillStyle = '#e7e0d5';
-    roundRect(ctx, 70, 510, 930, 28, 14);
+    roundRect(ctx, 70, 538, 930, 30, 15);
     ctx.fill();
 
-    if (myLoadNum > 0) {
+    const myLoadWidth = 930 * (myLoadNum / 100);
+    const ptLoadWidth = 930 - myLoadWidth;
+
+    if (myLoadWidth > 0) {
       ctx.fillStyle = '#4a7c6f';
-      roundRect(ctx, 70, 510, 930 * (myLoadNum / 100), 28, 14);
+      if (ptLoadWidth <= 0) {
+        roundRect(ctx, 70, 538, myLoadWidth, 30, 15);
+      } else {
+        roundRectLeft(ctx, 70, 538, myLoadWidth, 30, 15);
+      }
       ctx.fill();
     }
 
-    if (myLoadNum < 100) {
+    if (ptLoadWidth > 0) {
       ctx.fillStyle = '#4f668f';
-      roundRect(ctx, 70 + 930 * (myLoadNum / 100), 510, 930 * ((100 - myLoadNum) / 100), 28, 14);
+      if (myLoadWidth <= 0) {
+        roundRect(ctx, 70, 538, ptLoadWidth, 30, 15);
+      } else {
+        roundRectRight(ctx, 70 + myLoadWidth, 538, ptLoadWidth, 30, 15);
+      }
       ctx.fill();
     }
 
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#1a1714';
-    ctx.font = '600 18px sans-serif';
-    ctx.fillText(`■ ${myLabelDisplay} ${myLoad}`, 70, 585);
+    ctx.fillStyle = '#8a9a96';
+    ctx.font = '500 19px sans-serif';
+    ctx.fillText(`${myLabelDisplay} ${myLoad}`, 70, 622);
 
     ctx.textAlign = 'right';
-    ctx.fillText(`${ptLoad} ${ptLabelDisplay} ■`, 1000, 585);
+    ctx.fillText(`${ptLoad} ${ptLabelDisplay}`, 1000, 622);
 
     // カテゴリ割合
-    drawSectionTitle('カテゴリ割合', '', 700);
+    drawSectionTitle('カテゴリ割合', '', 740);
 
     if (categoryEntries.length === 0) {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#8a9a96';
       ctx.font = '500 20px sans-serif';
-      ctx.fillText('データがありません', 70, 760);
+      ctx.fillText('データがありません', 70, 800);
     } else {
       const total = categoryEntries.reduce((sum, [, v]) => sum + v, 0);
 
       let startAngle = -Math.PI / 2;
       const cx = 170;
-      const cy = 865;
-      const radius = 115;
+      const cy = 915;
+      const radius = 118;
 
       categoryEntries.forEach(([key, value], i) => {
         const ratio = value / total;
@@ -3227,38 +3248,46 @@ async function generateReportImage() {
         startAngle = endAngle;
       });
 
-      let legendY = 815;
+      const legendCols = 2;
+      const legendStartX = 340;
+      const legendStartY = 830;
+      const colWidth = 300;
+      const rowGap = 62;
+
       categoryEntries.forEach(([key, value], i) => {
         const pct = Math.round((value / total) * 100);
+        const col = i % legendCols;
+        const row = Math.floor(i / legendCols);
+
+        const baseX = legendStartX + col * colWidth;
+        const baseY = legendStartY + row * rowGap;
 
         ctx.fillStyle = pieColors[i % pieColors.length];
         ctx.beginPath();
-        ctx.arc(340, legendY - 6, 8, 0, Math.PI * 2);
+        ctx.arc(baseX, baseY - 6, 8, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.textAlign = 'left';
         ctx.fillStyle = '#1a1714';
         ctx.font = '500 18px sans-serif';
-        ctx.fillText(getCategoryLabel(key), 362, legendY);
+        ctx.fillText(getCategoryLabel(key), baseX + 20, baseY);
 
-        ctx.textAlign = 'right';
         ctx.fillStyle = '#8a9a96';
-        ctx.fillText(`${pct}%`, 1000, legendY);
-
-        legendY += 56;
+        ctx.font = '500 18px sans-serif';
+        ctx.fillText(`${pct}%`, baseX + 150, baseY);
       });
     }
 
     // カテゴリ別担当バランス
-    drawSectionTitle('カテゴリ別担当バランス', '完了件数ベース', 1110);
+    drawSectionTitle('カテゴリ別担当バランス', '完了件数ベース', 1185);
 
     if (allCatKeys.length === 0) {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#8a9a96';
       ctx.font = '500 20px sans-serif';
-      ctx.fillText('データがありません', 70, 1170);
+      ctx.fillText('データがありません', 70, 1245);
     } else {
-      let rowY = 1170;
+      let rowY = 1242;
 
       allCatKeys.slice(0, 4).forEach(k => {
         const mv = catMyCount[k] || 0;
@@ -3276,27 +3305,38 @@ async function generateReportImage() {
         roundRect(ctx, 70, rowY + 18, 930, 24, 12);
         ctx.fill();
 
-        if (myW > 0) {
+        const myWidth = 930 * (myW / 100);
+        const ptWidth = 930 - myWidth;
+
+        if (myWidth > 0) {
           ctx.fillStyle = '#4a7c6f';
-          roundRect(ctx, 70, rowY + 18, 930 * (myW / 100), 24, 12);
+          if (ptWidth <= 0) {
+            roundRect(ctx, 70, rowY + 18, myWidth, 24, 12);
+          } else {
+            roundRectLeft(ctx, 70, rowY + 18, myWidth, 24, 12);
+          }
           ctx.fill();
         }
 
-        if (ptW > 0) {
+        if (ptWidth > 0) {
           ctx.fillStyle = '#4f668f';
-          roundRect(ctx, 70 + 930 * (myW / 100), rowY + 18, 930 * (ptW / 100), 24, 12);
+          if (myWidth <= 0) {
+            roundRect(ctx, 70, rowY + 18, ptWidth, 24, 12);
+          } else {
+            roundRectRight(ctx, 70 + myWidth, rowY + 18, ptWidth, 24, 12);
+          }
           ctx.fill();
         }
 
         ctx.textAlign = 'left';
         ctx.fillStyle = '#8a9a96';
         ctx.font = '500 16px sans-serif';
-        ctx.fillText(`${myLabelDisplay} ${myW}%`, 70, rowY + 72);
+        ctx.fillText(`${myLabelDisplay} ${myW}%`, 70, rowY + 74);
 
         ctx.textAlign = 'right';
-        ctx.fillText(`${ptW}% ${ptLabelDisplay}`, 1000, rowY + 72);
+        ctx.fillText(`${ptW}% ${ptLabelDisplay}`, 1000, rowY + 74);
 
-        rowY += 132;
+        rowY += 118;
       });
     }
 
@@ -3310,19 +3350,19 @@ async function generateReportImage() {
 
     if (iconImg) {
       ctx.save();
-      ctx.globalAlpha = 0.92;
-      drawCircleImage(ctx, iconImg, 760, 1360, 42);
+      ctx.globalAlpha = 0.96;
+      drawCircleImage(ctx, iconImg, 760, 1450, 56);
       ctx.restore();
     }
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#4a7c6f';
-    ctx.font = '700 20px sans-serif';
-    ctx.fillText('業務かるがも', 815, 1383);
+    ctx.font = '700 24px sans-serif';
+    ctx.fillText('業務かるがも', 830, 1478);
 
     ctx.fillStyle = '#8a9a96';
-    ctx.font = '500 14px sans-serif';
-    ctx.fillText('https://gyomu-karugamo.com', 815, 1406);
+    ctx.font = '500 16px sans-serif';
+    ctx.fillText('https://gyomu-karugamo.com', 830, 1506);
 
     canvas.style.display = 'block';
 
