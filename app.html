@@ -940,6 +940,28 @@ footer a:hover { color: var(--duck); }
   box-shadow:0 1px 4px rgba(0,0,0,0.2); transition:transform 0.2s;
 }
 .toggle-switch input:checked + .toggle-track::after { transform:translateX(18px); }
+
+.report-cat-chip {
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--brown-mid);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.report-cat-chip:hover {
+  background: var(--cream-dark);
+}
+
+.report-cat-chip.active {
+  background: var(--duck-pale);
+  border-color: var(--duck);
+  color: var(--duck);
+  font-weight: 500;
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -1336,6 +1358,10 @@ footer a:hover { color: var(--duck); }
     <!-- カテゴリ別担当バランス（左右1本バー） -->
     <div class="card">
       <div class="sec-label" style="margin-bottom:12px;">カテゴリ別担当バランス <span style="font-size:10px;color:var(--mist);font-weight:400;">完了件数ベース</span></div>
+    
+      <div style="font-size:11px;color:var(--mist);margin-bottom:8px;">表示するカテゴリ</div>
+      <div id="catBalanceFilter" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+    
       <div id="catBalanceChart"></div>
     </div>
 
@@ -1790,6 +1816,7 @@ let lineSentCount = 0;
 let homeViewDate = new Date();
 let myName = '';       // 自分の名前
 let partnerName = '';  // パートナーの名前
+let selectedReportCategories = [];
 
 function getMyLabel()      { return myName      || '自分'; }
 
@@ -2950,17 +2977,69 @@ function renderReport() {
   
   const allCatKeys = [...new Set([...Object.keys(catMyCount), ...Object.keys(catPtCount)])];
   const catBalDiv = document.getElementById('catBalanceChart');
+  const catFilterWrap = document.getElementById('catBalanceFilter');
+  
+  // 初回だけデフォルト選択を作る
+  if (selectedReportCategories.length === 0) {
+    selectedReportCategories = allCatKeys.slice(0, 4);
+  }
+  
+  // 存在しないカテゴリは選択状態から除外
+  selectedReportCategories = selectedReportCategories.filter(k => allCatKeys.includes(k));
+  
+  // もし全部消えてしまったら先頭を入れる
+  if (selectedReportCategories.length === 0 && allCatKeys.length > 0) {
+    selectedReportCategories = allCatKeys.slice(0, 4);
+  }
+  
+  // フィルターチップ描画
+  if (catFilterWrap) {
+    if (allCatKeys.length === 0) {
+      catFilterWrap.innerHTML = '';
+    } else {
+      catFilterWrap.innerHTML = allCatKeys.map(k => {
+        const active = selectedReportCategories.includes(k);
+        return `
+          <button
+            type="button"
+            class="report-cat-chip ${active ? 'active' : ''}"
+            data-report-cat="${escHtml(k)}">
+            ${escHtml(getCategoryLabel(k))}
+          </button>
+        `;
+      }).join('');
+  
+      catFilterWrap.querySelectorAll('[data-report-cat]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.reportCat;
+          const exists = selectedReportCategories.includes(key);
+  
+          if (exists) {
+            // 1個は残す
+            if (selectedReportCategories.length === 1) return;
+            selectedReportCategories = selectedReportCategories.filter(v => v !== key);
+          } else {
+            selectedReportCategories.push(key);
+          }
+  
+          renderReport();
+        });
+      });
+    }
+  }
+  
+  const visibleCatKeys = allCatKeys.filter(k => selectedReportCategories.includes(k));
   
   if (catBalDiv) {
-    if (allCatKeys.length === 0) {
+    if (visibleCatKeys.length === 0) {
       catBalDiv.innerHTML = '<div style="font-size:13px;color:var(--mist);">データがありません</div>';
     } else {
-      catBalDiv.innerHTML = allCatKeys.map(k => {
+      catBalDiv.innerHTML = visibleCatKeys.map(k => {
         const mv = catMyCount[k] || 0;
         const pv = catPtCount[k] || 0;
         const tot = mv + pv;
         const myW = tot > 0 ? Math.round(mv / tot * 100) : 50;
-
+  
         return `
           <div style="margin-bottom:10px;">
             <div style="font-size:11px;color:var(--mist);margin-bottom:4px;">${getCategoryLabel(k)}</div>
@@ -2977,7 +3056,6 @@ function renderReport() {
       }).join('');
     }
   }
-}
 
 // ========================================
 // REPORT: 画像生成 & SNS共有
