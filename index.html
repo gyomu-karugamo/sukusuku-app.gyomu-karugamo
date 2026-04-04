@@ -4,17 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ログイン｜業務かるがも</title>
+<meta name="description" content="業務かるがものログイン・新規登録ページです。家事・育児のタスクを整理し、パートナーへの依頼はLINEで送信できます。">
+<meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="/assets/icon.png">
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet">
+<link rel="apple-touch-icon" href="/assets/icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
 
 <!-- ===== PWA ===== -->
 <link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#75c29c" />
+<meta name="theme-color" content="#4a7c6f" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="業務かるがも" />
-<link rel="apple-touch-icon" href="/assets/icon.png" />
 <!-- ===== /PWA ===== -->
 
 <!-- Google tag (gtag.js) -->
@@ -33,27 +35,37 @@
 
   :root {
     --ink: #1a1714;
-    --cream: #f5f0e8;
-    --warm: #e8dfd0;
+    --brown: #3d2b1f;
+    --brown-mid: #7a5c4a;
+    --brown-light: #c4a882;
+    --cream: #f2ede6;
+    --cream-light: #f8f5f0;
+    --warm: #ece5da;
     --duck: #4a7c6f;
+    --duck-dark: #3a6359;
     --duck-light: #6a9e8f;
-    --duck-pale: #d4e8e2;
+    --duck-pale: #e8f0ee;
     --mist: #8a9a96;
+    --line: rgba(26,23,20,0.08);
+    --line-strong: rgba(26,23,20,0.12);
     --error: #b3261e;
     --success: #4a7c6f;
+    --shadow: 0 12px 40px rgba(61,43,31,0.07);
+    --radius: 18px;
+    --radius-sm: 10px;
   }
 
   html, body { min-height: 100vh; }
 
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Noto Sans JP', sans-serif;
     background: var(--cream);
-    color: var(--ink);
+    color: var(--brown);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px;
+    padding: 44px 20px;
     position: relative;
     overflow-x: hidden;
   }
@@ -61,31 +73,36 @@
   body::before {
     content: '';
     position: fixed;
-    top: -100px; right: -100px;
-    width: 500px; height: 500px;
+    top: -140px;
+    right: -120px;
+    width: 560px;
+    height: 560px;
     border-radius: 50%;
-    background: var(--duck-pale);
-    opacity: 0.35;
+    background: radial-gradient(circle, rgba(74,124,111,.10) 0%, transparent 70%);
     pointer-events: none;
+    z-index: 0;
   }
+
   body::after {
     content: '';
     position: fixed;
-    bottom: -80px; left: -80px;
-    width: 360px; height: 360px;
+    bottom: -120px;
+    left: -100px;
+    width: 420px;
+    height: 420px;
     border-radius: 50%;
-    background: var(--warm);
-    opacity: 0.6;
+    background: radial-gradient(circle, rgba(196,168,130,.16) 0%, transparent 72%);
     pointer-events: none;
+    z-index: 0;
   }
 
   .noise {
     position: fixed;
     inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
     pointer-events: none;
     z-index: 0;
-    opacity: 0.3;
+    opacity: 0.22;
   }
 
   .wrap {
@@ -101,261 +118,545 @@
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: 440px;
+    max-width: 468px;
   }
 
   .logo {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 40px;
+    gap: 10px;
+    margin-bottom: 24px;
     text-decoration: none;
     animation: fadeDown 0.6s ease forwards;
   }
-  .logo img { width: 56px; height: 56px; object-fit: contain; }
+
+  .logo img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+  }
+
   .logo-name {
-    font-family: 'Shippori Mincho', serif;
-    font-size: 20px; font-weight: 600;
-    color: var(--ink); letter-spacing: 0.04em;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.95rem;
+    font-weight: 700;
+    color: var(--brown);
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+
+  .intro-card {
+    margin: 0 auto 22px;
+    padding: 20px 22px;
+    background: rgba(255,255,255,0.62);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 8px 28px rgba(61,43,31,0.05);
+    backdrop-filter: blur(8px);
+    animation: fadeUp 0.6s ease 0.05s both;
+  }
+
+  .intro-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--duck-pale);
+    color: var(--duck-dark);
+    border: 1px solid rgba(74,124,111,.18);
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+
+  .intro-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.2rem;
+    line-height: 1.75;
+    font-weight: 700;
+    color: var(--brown);
+    margin-bottom: 10px;
+  }
+
+  .intro-title .hl {
+    color: var(--duck);
+  }
+
+  .intro-desc {
+    font-size: 0.95rem;
+    line-height: 1.95;
+    color: var(--brown-mid);
+  }
+
+  .intro-points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .intro-point {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid rgba(61,43,31,0.10);
+    color: var(--mist);
+    font-size: 0.78rem;
+    line-height: 1;
   }
 
   .card {
-    background: white;
-    border: 1px solid rgba(26,23,20,0.08);
-    padding: 40px 40px 36px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 36px 34px 32px;
+    box-shadow: var(--shadow);
     animation: fadeUp 0.6s ease 0.1s both;
   }
 
   .card-section { margin-bottom: 0; }
+
   .card-section + .card-section {
-    margin-top: 32px; padding-top: 32px;
-    border-top: 1px solid rgba(26,23,20,0.08);
+    margin-top: 32px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
   }
 
   .section-label {
-    font-size: 11px; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--duck);
-    margin-bottom: 6px;
-    display: flex; align-items: center; gap: 8px;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--duck);
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
+
   .section-label::after {
-    content: ''; display: block; flex: 1;
-    height: 1px; background: var(--duck); opacity: 0.2;
+    content: '';
+    display: block;
+    flex: 1;
+    height: 1px;
+    background: var(--duck);
+    opacity: 0.18;
   }
 
   .section-title {
-    font-family: 'Shippori Mincho', serif;
-    font-size: 20px; font-weight: 600;
-    color: var(--ink); margin-bottom: 6px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.42rem;
+    font-weight: 700;
+    color: var(--brown);
+    margin-bottom: 8px;
+    line-height: 1.55;
   }
 
   .section-desc {
-    font-size: 13px; color: var(--mist);
-    line-height: 1.7; font-weight: 300; margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: var(--brown-mid);
+    line-height: 1.85;
+    font-weight: 300;
+    margin-bottom: 20px;
   }
 
-  .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
 
   input[type="email"],
   input[type="password"],
   input[type="text"] {
-    width: 100%; padding: 12px 16px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px; font-weight: 300;
-    color: var(--ink); background: var(--cream);
-    border: 1px solid rgba(26,23,20,0.12);
-    border-radius: 0; outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    padding: 13px 15px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--brown);
+    background: var(--cream-light);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   }
+
   input[type="email"]:focus,
   input[type="password"]:focus,
   input[type="text"]:focus {
     border-color: var(--duck);
-    box-shadow: 0 0 0 3px rgba(74,124,111,0.12);
-    background: white;
+    box-shadow: 0 0 0 3px rgba(74,124,111,0.10);
+    background: #fff;
   }
+
   input[type="email"]::placeholder,
-  input[type="password"]::placeholder { color: #b0a898; }
+  input[type="password"]::placeholder,
+  input[type="text"]::placeholder {
+    color: #b0a898;
+  }
 
   .show-pw {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; color: var(--mist);
-    cursor: pointer; user-select: none;
-    margin-top: -2px; margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--mist);
+    cursor: pointer;
+    user-select: none;
+    margin-top: -2px;
+    margin-bottom: 4px;
   }
+
   .show-pw input[type="checkbox"] {
-    width: 14px; height: 14px;
-    accent-color: var(--duck); cursor: pointer;
+    width: 14px;
+    height: 14px;
+    accent-color: var(--duck);
+    cursor: pointer;
   }
 
   .agree {
-    display: flex; align-items: flex-start; gap: 10px;
-    margin-bottom: 16px; font-size: 13px;
-    color: var(--mist); line-height: 1.6; font-weight: 300;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--brown-mid);
+    line-height: 1.75;
+    font-weight: 300;
   }
+
   .agree input[type="checkbox"] {
-    width: 15px; height: 15px; margin-top: 2px;
-    flex-shrink: 0; accent-color: var(--duck); cursor: pointer;
+    width: 15px;
+    height: 15px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--duck);
+    cursor: pointer;
   }
-  .agree a { color: var(--duck); text-decoration: none; }
+
+  .agree a {
+    color: var(--duck);
+    text-decoration: none;
+  }
+
   .agree a:hover { text-decoration: underline; }
 
   .btn-primary {
-    width: 100%; padding: 13px 24px;
-    background: var(--duck); color: white;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px; font-weight: 400;
-    letter-spacing: 0.04em; border: none;
-    cursor: pointer; transition: background 0.2s, transform 0.15s;
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--duck);
+    color: white;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
     margin-top: 4px;
   }
-  .btn-primary:hover:not(:disabled) { background: var(--ink); transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--duck-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(74,124,111,0.18);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
 
   .divider-or {
-    display: flex; align-items: center; gap: 12px;
-    margin: 20px 0; font-size: 12px;
-    color: var(--mist); letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0;
+    font-size: 12px;
+    color: var(--mist);
+    letter-spacing: 0.06em;
   }
+
   .divider-or::before,
-  .divider-or::after { content: ''; flex: 1; height: 1px; background: rgba(26,23,20,0.1); }
+  .divider-or::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(26,23,20,0.10);
+  }
 
   .row { margin-bottom: 4px; }
 
   .btn-google {
-    width: 100%; display: flex;
-    align-items: center; justify-content: center; gap: 10px;
-    padding: 12px 24px; background: white; color: var(--ink);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px; font-weight: 400; letter-spacing: 0.02em;
-    border: 1px solid rgba(26,23,20,0.18); cursor: pointer;
-    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 13px 24px;
+    background: #fff;
+    color: var(--brown);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    border: 1px solid rgba(26,23,20,0.14);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
   }
-  .btn-google:hover { background: var(--cream); border-color: rgba(26,23,20,0.3); transform: translateY(-1px); }
-  .btn-google svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  .btn-google:hover {
+    background: var(--cream-light);
+    border-color: rgba(26,23,20,0.24);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(61,43,31,0.05);
+  }
+
+  .btn-google svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
 
   .form-message {
-    font-size: 13px; line-height: 1.5;
-    min-height: 1.3em; margin-top: 8px;
-    font-weight: 300; color: var(--error);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 1.3em;
+    margin-top: 8px;
+    font-weight: 300;
+    color: var(--error);
   }
 
-  .msg { font-size: 13px; line-height: 1.5; min-height: 1.3em; margin-top: 8px; font-weight: 300; }
+  .msg {
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 1.3em;
+    margin-top: 8px;
+    font-weight: 300;
+  }
+
   .msg.error   { color: var(--error); }
   .msg.success { color: var(--success); }
 
   .foot {
-    margin-top: 28px; text-align: center;
-    font-size: 12px; color: var(--mist);
-    line-height: 1.7; font-weight: 300;
+    margin-top: 28px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--brown-mid);
+    line-height: 1.8;
+    font-weight: 300;
     animation: fadeUp 0.6s ease 0.25s both;
   }
-  .foot a { color: var(--duck); text-decoration: none; }
+
+  .foot a {
+    color: var(--duck);
+    text-decoration: none;
+  }
+
   .foot-links {
-    display: flex; justify-content: center;
-    gap: 20px; flex-wrap: wrap; margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 12px;
   }
+
   .foot-links a {
-    color: var(--mist); font-size: 11px;
-    letter-spacing: 0.04em; text-decoration: none; transition: color 0.2s;
+    color: var(--brown-mid);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    transition: color 0.2s;
   }
+
   .foot-links a:hover { color: var(--duck); }
 
   /* ===== PWA バナー ===== */
   .pwa-banner {
-    display: none; align-items: center; gap: 12px;
-    position: fixed; bottom: 20px; left: 50%;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
     transform: translateX(-50%);
-    width: calc(100% - 32px); max-width: 440px;
-    background: white; border: 1px solid rgba(26,23,20,0.1);
-    box-shadow: 0 4px 24px rgba(26,23,20,0.12);
-    padding: 14px 16px; z-index: 200;
+    width: calc(100% - 32px);
+    max-width: 440px;
+    background: white;
+    border: 1px solid rgba(26,23,20,0.10);
+    border-radius: 14px;
+    box-shadow: 0 8px 28px rgba(26,23,20,0.14);
+    padding: 14px 16px;
+    z-index: 200;
   }
+
   .pwa-banner.show { display: flex; }
-  .pwa-banner-icon { font-size: 22px; flex-shrink: 0; }
-  .pwa-banner-body { flex: 1; min-width: 0; }
+
+  .pwa-banner-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .pwa-banner-body {
+    flex: 1;
+    min-width: 0;
+  }
+
   .pwa-banner-title {
-    font-family: 'Shippori Mincho', serif;
-    font-size: 13px; font-weight: 600;
-    color: var(--ink); margin-bottom: 2px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--brown);
+    margin-bottom: 2px;
   }
-  .pwa-banner-desc { font-size: 11px; color: var(--mist); line-height: 1.5; }
+
+  .pwa-banner-desc {
+    font-size: 11px;
+    color: var(--mist);
+    line-height: 1.5;
+  }
+
   .pwa-banner-btn {
-    flex-shrink: 0; padding: 8px 14px;
-    background: var(--duck); color: white;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px; font-weight: 400;
-    border: none; cursor: pointer; transition: background 0.2s;
+    flex-shrink: 0;
+    padding: 8px 14px;
+    background: var(--duck);
+    color: white;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
   }
-  .pwa-banner-btn:hover { background: var(--ink); }
+
+  .pwa-banner-btn:hover { background: var(--duck-dark); }
+
   .pwa-banner-close {
-    flex-shrink: 0; width: 28px; height: 28px;
-    display: flex; align-items: center; justify-content: center;
-    background: transparent; border: none;
-    color: var(--mist); font-size: 16px;
-    cursor: pointer; transition: color 0.2s;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--mist);
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.2s;
   }
-  .pwa-banner-close:hover { color: var(--ink); }
+
+  .pwa-banner-close:hover { color: var(--brown); }
 
   /* ===== PWA モーダル ===== */
   .pwa-modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(26,23,20,0.4); z-index: 300;
-    align-items: flex-end; justify-content: center;
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,23,20,0.4);
+    z-index: 300;
+    align-items: flex-end;
+    justify-content: center;
     padding: 0 16px 20px;
   }
+
   .pwa-modal-overlay.show { display: flex; }
+
   .pwa-modal {
     background: white;
-    width: 100%; max-width: 440px;
+    width: 100%;
+    max-width: 440px;
+    border-radius: 18px;
     padding: 28px 28px 24px;
     animation: slideUp 0.3s ease forwards;
-  }
-  .pwa-modal-title {
-    font-family: 'Shippori Mincho', serif;
-    font-size: 18px; font-weight: 600;
-    color: var(--ink); margin-bottom: 8px;
-  }
-  .pwa-modal-sub {
-    font-size: 13px; color: var(--mist);
-    line-height: 1.6; margin-bottom: 16px;
+    box-shadow: 0 18px 42px rgba(26,23,20,0.18);
   }
 
-  /* ===== PWA ステップ（app.htmlと共通スタイル） ===== */
+  .pwa-modal-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--brown);
+    margin-bottom: 8px;
+  }
+
+  .pwa-modal-sub {
+    font-size: 13px;
+    color: var(--brown-mid);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
   .pwa-steps {
-    display: flex; flex-direction: column;
-    gap: 12px; margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
   }
-  .pwa-step { display: flex; align-items: flex-start; gap: 12px; }
+
+  .pwa-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
   .pwa-step-num {
-    width: 24px; height: 24px; border-radius: 50%;
-    background: var(--duck); color: white;
-    font-size: 11px; font-weight: 500;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; margin-top: 1px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--duck);
+    color: white;
+    font-size: 11px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
   }
+
   .pwa-step-text {
-    font-size: 13px; color: var(--ink);
-    line-height: 1.6;
+    font-size: 13px;
+    color: var(--brown);
+    line-height: 1.7;
   }
 
   .pwa-modal-close {
-    width: 100%; padding: 12px;
-    background: var(--cream); border: 1px solid rgba(26,23,20,0.12);
-    color: var(--ink); font-family: 'DM Sans', sans-serif;
-    font-size: 14px; cursor: pointer; transition: background 0.2s;
+    width: 100%;
+    padding: 12px;
+    background: var(--cream);
+    border: 1px solid rgba(26,23,20,0.12);
+    border-radius: 10px;
+    color: var(--brown);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
   }
+
   .pwa-modal-close:hover { background: var(--warm); }
 
   @keyframes fadeDown {
     from { opacity: 0; transform: translateY(-16px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+
   @keyframes slideUp {
     from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -363,8 +664,47 @@
 
   @media (max-width: 480px) {
     body { padding: 32px 16px; }
-    .card { padding: 28px 24px 28px; }
-    .logo { margin-bottom: 32px; }
+
+    .container { max-width: 100%; }
+
+    .logo {
+      margin-bottom: 20px;
+    }
+
+    .logo img {
+      width: 58px;
+      height: 58px;
+    }
+
+    .logo-name {
+      font-size: 1.68rem;
+    }
+
+    .intro-card {
+      padding: 18px 16px;
+      margin-bottom: 18px;
+      border-radius: 14px;
+    }
+
+    .intro-title {
+      font-size: 1.05rem;
+      line-height: 1.8;
+    }
+
+    .intro-desc {
+      font-size: 0.9rem;
+      line-height: 1.9;
+    }
+
+    .card {
+      padding: 28px 20px 28px;
+      border-radius: 16px;
+    }
+
+    .section-title {
+      font-size: 1.24rem;
+    }
+
     .pwa-banner { bottom: 12px; }
   }
 </style>
@@ -400,20 +740,29 @@
 
   <div class="container">
 
-    <!-- ロゴ -->
     <a href="/" class="logo">
       <img src="/assets/icon.png" alt="業務かるがも">
       <span class="logo-name">業務かるがも</span>
     </a>
-    <div class="intro-box">
-      <p class="intro-title">家事も育児も、立派な「業務」です。</p>
+
+    <div class="intro-card">
+      <div class="intro-label">🦆 はじめての方へ</div>
+      <h1 class="intro-title">
+        家事も育児も、立派な <span class="hl">「業務」</span> です。
+      </h1>
       <p class="intro-desc">
-        家事・育児のタスクを整理して、パートナーへの依頼はLINEで送信。<br>
+        家事・育児のタスクを整理して、<br>
+        パートナーへの依頼はLINEで送信。<br>
         パートナーはアプリ不要です。
       </p>
+      <div class="intro-points">
+        <span class="intro-point">クレジットカード不要</span>
+        <span class="intro-point">登録1分</span>
+        <span class="intro-point">パートナーのアプリ不要</span>
+      </div>
     </div>
-    <div class="card">
 
+    <div class="card">
 
       <!-- パスワードログイン -->
       <div class="card-section">
@@ -434,7 +783,6 @@
         <p id="pw-message" class="msg" aria-live="polite"></p>
       </div>
 
-      <!-- OR 区切り -->
       <div class="divider-or">または</div>
 
       <!-- Google ログイン -->
@@ -455,13 +803,17 @@
       <div class="card-section">
         <div class="section-label">Register / Reset</div>
         <h2 class="section-title">新規登録 / パスワード再設定</h2>
-        <p class="section-desc">メールアドレスを認証してアカウントを作成します。すでにアカウントがある場合、同じ手順でパスワード再設定へ進めます。</p>
+        <p class="section-desc">
+          メールアドレスを認証してアカウントを作成します。
+          すでにアカウントがある場合、同じ手順でパスワード再設定へ進めます。
+        </p>
 
         <label class="agree">
           <input type="checkbox" id="agree">
           <span>
             <a href="https://gyomu-karugamo.com/terms.html" target="_blank" rel="noopener">利用規約</a>および
-            <a href="https://gyomu-karugamo.com/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>を読んで同意しました。また、本サービスは女性を対象としており、女性であることに同意します。
+            <a href="https://gyomu-karugamo.com/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>を読んで同意しました。
+            また、本サービスは女性を対象としており、女性であることに同意します。
           </span>
         </label>
 
@@ -485,8 +837,8 @@
       </div>
     </div>
 
-  </div><!-- /.container -->
-</div><!-- /.wrap -->
+  </div>
+</div>
 
 <script>
   const SUPABASE_URL = "https://gdcnxuymqbzkqfrcvpbe.supabase.co";
@@ -496,7 +848,6 @@
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
 
-  // ログイン済み（またはOAuthコールバック後）はapp.htmlへ
   sb.auth.onAuthStateChange((event, session) => {
     if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
       window.location.href = 'https://app.gyomu-karugamo.com/app.html';
@@ -542,11 +893,10 @@
     pwField.type = showPw.checked ? "text" : "password";
   });
 
-  $("#pw-email").addEventListener("input",    () => showMsg(pwMsg, ""));
-  $("#pw-password").addEventListener("input",  () => showMsg(pwMsg, ""));
-  $("#magic-email").addEventListener("input",  () => showMsg(magicMsg, ""));
+  $("#pw-email").addEventListener("input",   () => showMsg(pwMsg, ""));
+  $("#pw-password").addEventListener("input",() => showMsg(pwMsg, ""));
+  $("#magic-email").addEventListener("input",() => showMsg(magicMsg, ""));
 
-  // パスワードログイン
   pwLoginBtn.onclick = async () => {
     const email    = $("#pw-email").value.trim();
     const password = $("#pw-password").value;
@@ -562,11 +912,8 @@
 
     if (error) { showMsg(pwMsg, TXT.pwLoginFailed); return; }
     try { gtag('event', 'login_success', { method: 'password' }); } catch(e) {}
-    // onAuthStateChange の SIGNED_IN がリダイレクトを担う
   };
 
-  // Googleログイン
-  // ※ redirectTo は Supabase ダッシュボードの Redirect URLs に登録が必要
   $("#btn-google").onclick = async () => {
     const googleMsg = $("#google-message");
     showMsg(googleMsg, "");
@@ -579,7 +926,6 @@
     if (error) showMsg(googleMsg, TXT.errorPrefix + error.message);
   };
 
-  // マジックリンク / 新規登録
   magicBtn.onclick = async () => {
     const email = $("#magic-email").value.trim();
 
@@ -603,7 +949,6 @@
   };
 </script>
 
-<!-- ===== PWA バナー・モーダル制御 ===== -->
 <script>
   let deferredPrompt = null;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -623,7 +968,6 @@
     }
   }
 
-  // ===== PWA ステップコンテンツ（app.htmlと同一構造） =====
   const IOS_STEPS = `
     <div class="pwa-step">
       <div class="pwa-step-num">1</div>
@@ -656,11 +1000,9 @@
 
   document.getElementById('pwaBannerBtn').addEventListener('click', () => {
     if (deferredPrompt) {
-      // Android Chrome: ネイティブのインストールプロンプトを表示
       deferredPrompt.prompt();
       deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
     } else {
-      // iOS / その他: モーダルで手順を表示
       document.getElementById('pwaModalSub').textContent = isIOS
         ? 'Safariで以下の手順でホーム画面に追加できます。'
         : 'ブラウザの手順でホーム画面に追加できます。';
@@ -684,7 +1026,6 @@
     }
   });
 </script>
-<!-- ===== /PWA ===== -->
 
 </body>
 </html>
