@@ -1222,7 +1222,7 @@ function route() {
     renderAlbumEditor(studentId, null);
   } else if (hash.startsWith('#/students/') && hash.includes('/album/') && !hash.includes('/new')) {
     const parts = hash.split('/');
-    renderAlbumView(parts[4]);
+    renderAlbumEditor(parts[2], parts[4]);
   } else if (hash.startsWith('#/students/')) {
     const studentId = hash.split('/')[2];
     renderStudentDetail(studentId);
@@ -1571,41 +1571,54 @@ async function toggleExclude(photoId, currentExcluded) {
 
 // アルバム完成
 async function finalizeAlbum(studentId) {
-  const title = document.getElementById('album-title-input')?.value.trim();
-  if (!title) {
-    alert('アルバムのタイトルを入力してください。');
-    document.getElementById('album-title-input')?.focus();
+  // currentAlbumId の補完（URLからフォールバック）
+  const albumId = currentAlbumId || location.hash.split('/')[4];
+  if (!albumId || albumId === 'undefined') {
+    alert('アルバムIDが取得できませんでした。ページを再読み込みしてください。');
     return;
   }
 
-  // SortableJSの並び順をDBに保存
-  if (albumSortable) {
-    const order = albumSortable.toArray ? null : null; // data-id不要、手動で取得
-    const items = document.querySelectorAll('#album-grid .album-photo-item');
-    const updates = [];
-    items.forEach((el, i) => {
-      const photoId = el.getAttribute('data-photo-id');
-      if (photoId) updates.push(sb.from('album_photos').update({ sort_order: i }).eq('id', photoId));
-    });
-    await Promise.all(updates);
+  const titleInput = document.getElementById('album-title-input');
+  let title = titleInput?.value.trim();
+  // タイトル未入力時は placeholder の値をデフォルトとして使用
+  if (!title) {
+    title = titleInput?.placeholder || '成長アルバム';
+    if (titleInput) titleInput.value = title;
   }
+
+  // SortableJSの並び順をDBに保存
+  const items = document.querySelectorAll('#album-grid .album-photo-item');
+  const updates = [];
+  items.forEach((el, i) => {
+    const photoId = el.getAttribute('data-photo-id');
+    if (photoId) updates.push(sb.from('album_photos').update({ sort_order: i }).eq('id', photoId));
+  });
+  if (updates.length > 0) await Promise.all(updates);
 
   const accentColor   = document.getElementById('album-color-input')?.value || '#4a7c6f';
   const photosPerPage = parseInt(document.getElementById('album-layout-select')?.value || '2', 10);
   const teacherMsg    = document.getElementById('album-message-input')?.value.trim() || null;
 
-  const { error } = await sb.from('albums').update({
-    title,
-    accent_color:    accentColor,
-    photos_per_page: photosPerPage,
-    teacher_message: teacherMsg,
-    is_finalized: true,
-    finalized_at: new Date().toISOString(),
-  }).eq('id', currentAlbumId);
+  const btn = document.querySelector('.album-editor-header')?.closest('.page')?.querySelector('.btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
 
-  if (error) { alert('保存に失敗しました: ' + error.message); return; }
+  try {
+    const { error } = await sb.from('albums').update({
+      title,
+      accent_color:    accentColor,
+      photos_per_page: photosPerPage,
+      teacher_message: teacherMsg,
+      is_finalized: true,
+      finalized_at: new Date().toISOString(),
+    }).eq('id', albumId);
 
-  location.hash = `#/students/${studentId}/album/${currentAlbumId}`;
+    if (error) { alert('保存に失敗しました: ' + error.message); return; }
+
+    currentAlbumId = albumId;
+    renderAlbumView(albumId);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '完成させる →'; }
+  }
 }
 
 // ============================================================
