@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="すくすくかるがも">
+<meta name="apple-mobile-web-app-title" content="すくすくかるがもアルバム">
 <link rel="apple-touch-icon" href="/assets/icon.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1025,7 +1025,7 @@ textarea.form-input {
 <nav class="nav" id="nav" style="display:none">
   <a class="nav-logo" href="#/students">
     <img src="/assets/icon.png" alt="かるがも">
-    <span class="nav-logo-text">すくすくかるがも</span>
+    <span class="nav-logo-text">すくすくかるがもアルバム</span>
   </a>
   <div class="nav-tabs">
     <button class="nav-tab" id="tab-students" onclick="location.hash='#/students'">生徒一覧</button>
@@ -1188,10 +1188,11 @@ const APP_URL           = "https://app.gyomu-karugamo.com/app.html";
 // プラン設定
 // ============================================================
 const PLANS = {
-  free:     { name: '無料プラン（お試し）', maxStudents: 5,        maxAlbumsPerMonth: 2,        canShare: false, canPDF: false },
-  light:    { name: 'ライトプラン',         maxStudents: 30,       maxAlbumsPerMonth: Infinity, canShare: true,  canPDF: true  },
-  standard: { name: 'スタンダードプラン',   maxStudents: Infinity, maxAlbumsPerMonth: Infinity, canShare: true,  canPDF: true  },
-  premium:  { name: 'スタンダードプラン',   maxStudents: Infinity, maxAlbumsPerMonth: Infinity, canShare: true,  canPDF: true  },
+  // maxAlbumsFinalized = アルバム確定（PDF/共有可能化）の月間上限
+  free:     { name: '無料プラン（お試し）', maxStudents: 5,        maxAlbumsFinalized: 0,        canShare: false, canPDF: false },
+  light:    { name: 'ライトプラン',         maxStudents: 30,       maxAlbumsFinalized: 5,        canShare: true,  canPDF: true  },
+  standard: { name: 'スタンダードプラン',   maxStudents: Infinity, maxAlbumsFinalized: Infinity, canShare: true,  canPDF: true  },
+  premium:  { name: 'スタンダードプラン',   maxStudents: Infinity, maxAlbumsFinalized: Infinity, canShare: true,  canPDF: true  },
 };
 
 // ============================================================
@@ -1424,27 +1425,7 @@ function timelineItemHtml(record) {
 // アルバム作成開始
 // ============================================================
 async function startAlbum(studentId) {
-  // 月次上限チェック
-  const limits = getLimits();
-  if (limits.maxAlbumsPerMonth < Infinity) {
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-    const { count } = await sb.from('albums')
-      .select('*', { count: 'exact', head: true })
-      .eq('student_id', studentId)
-      .gte('created_at', monthStart);
-    // user_idフィルタのため students join
-    const { count: totalCount } = await sb
-      .from('albums')
-      .select('*, students!inner(user_id)', { count: 'exact', head: true })
-      .eq('students.user_id', currentUser.id)
-      .gte('created_at', monthStart);
-
-    if ((totalCount || 0) >= limits.maxAlbumsPerMonth) {
-      alert(`${limits.name}のアルバム生成は月${limits.maxAlbumsPerMonth}回までです。\nスタンダードプランにアップグレードすると無制限でご利用いただけます。`);
-      return;
-    }
-  }
+  // アルバムプレビュー機能は無制限（確定時に回数チェックを行う）
 
   // アルバムレコード作成（下書き）
   const { data: album, error } = await sb.from('albums').insert({
@@ -1698,6 +1679,27 @@ async function finalizeAlbum(studentId) {
     return;
   }
 
+  // ===== アルバム作成機能の月次上限チェック =====
+  const limits = getLimits();
+  if (!limits.canPDF && !limits.canShare) {
+    alert('アルバムの完成はライトプラン以上でご利用いただけます。\nアカウントタブからプランをご確認ください。');
+    return;
+  }
+  if (limits.maxAlbumsFinalized < Infinity) {
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    const { count: finalizedCount } = await sb
+      .from('albums')
+      .select('*, students!inner(user_id)', { count: 'exact', head: true })
+      .eq('students.user_id', currentUser.id)
+      .eq('is_finalized', true)
+      .gte('finalized_at', monthStart);
+    if ((finalizedCount || 0) >= limits.maxAlbumsFinalized) {
+      alert(`${limits.name}のアルバム作成は月${limits.maxAlbumsFinalized}回までです。\nスタンダードプランにアップグレードすると無制限でご利用いただけます。`);
+      return;
+    }
+  }
+
   const titleInput = document.getElementById('album-title-input');
   let title = titleInput?.value.trim();
   // タイトル未入力時は placeholder の値をデフォルトとして使用
@@ -1877,10 +1879,25 @@ async function renderAlbumView(albumId) {
   const studentId   = album.students?.id || '';
   const studentName = album.students?.name || '';
   const limits      = getLimits();
+  const isFree      = !limits.canPDF && !limits.canShare;
 
   const shareBtn = limits.canShare
     ? `<button class="btn btn-secondary btn-sm" onclick="issueShareLink('${albumId}')">🔗 共有リンクを発行</button>`
-    : `<button class="btn btn-secondary btn-sm" title="スタンダードプランで利用可能" style="opacity:.6;cursor:not-allowed">🔗 共有（スタンダード）</button>`;
+    : `<button class="btn btn-secondary btn-sm" disabled style="opacity:.45;cursor:not-allowed">🔗 共有リンクを発行</button>`;
+
+  const pdfBtn = limits.canPDF
+    ? `<button class="btn btn-primary btn-sm" onclick="downloadAlbumPDF('${albumId}')">⬇ PDFダウンロード</button>`
+    : `<button class="btn btn-primary btn-sm" disabled style="opacity:.45;cursor:not-allowed">⬇ PDFダウンロード</button>`;
+
+  const upgradeBanner = isFree ? `
+    <div style="margin-top:20px;background:var(--duck-pale);border:1.5px solid var(--duck-light);border-radius:12px;padding:16px 18px">
+      <div style="font-weight:600;color:var(--duck-dark);margin-bottom:6px">プレビューを確認できました！</div>
+      <div style="font-size:0.88rem;color:var(--brown-mid);line-height:1.7;margin-bottom:12px">
+        PDFダウンロードや共有リンクの発行は<strong>ライトプラン以上</strong>でご利用いただけます。<br>
+        プランのアップグレードは「アカウント」タブから行えます。
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="location.hash='#/account'">アカウントタブへ →</button>
+    </div>` : '';
 
   main.innerHTML = `
     <div class="fade-up">
@@ -1896,8 +1913,9 @@ async function renderAlbumView(albumId) {
         <div style="color:var(--brown-mid);font-size:13px;margin-bottom:20px">${esc(studentName)}・${photos.length}枚</div>
         ${slideViewerHtml('album-view-slide')}
         <div style="margin-top:16px">
-          <button class="btn btn-primary btn-sm" onclick="downloadAlbumPDF('${albumId}')">⬇ PDFダウンロード</button>
+          ${pdfBtn}
         </div>
+        ${upgradeBanner}
       </div>
     </div>`;
 
@@ -2040,7 +2058,7 @@ async function generatePDF(album, photos) {
   if (photos.length === 0) { alert('写真がありません'); return; }
 
   if (!getLimits().canPDF) {
-    alert('PDFダウンロードはライトプラン以上でご利用いただけます。\nアカウントタブからプランをご確認ください。');
+    alert('PDFダウンロードはライトプラン以上でご利用いただけます。アカウントタブからプランをご確認ください。');
     return;
   }
 
@@ -2628,6 +2646,7 @@ async function renderAccount() {
           <div class="plan-features">
             <div class="plan-feature">生徒登録 最大5名</div>
             <div class="plan-feature">レッスン記録（写真・メモ）</div>
+            <div class="plan-feature">アルバムプレビュー</div>
             <div class="plan-feature" style="opacity:.45;text-decoration:line-through">共有リンク発行</div>
             <div class="plan-feature" style="opacity:.45;text-decoration:line-through">PDF・画像エクスポート</div>
           </div>
@@ -2637,7 +2656,7 @@ async function renderAccount() {
           <div class="plan-price">¥1,980 <span>/ 月（14日間無料）</span></div>
           <div class="plan-features">
             <div class="plan-feature">生徒登録 〜30名</div>
-            <div class="plan-feature">自動アルバム生成</div>
+            <div class="plan-feature">アルバム作成 月5回</div>
             <div class="plan-feature">共有リンク発行</div>
             <div class="plan-feature">PDF・画像エクスポート</div>
           </div>
