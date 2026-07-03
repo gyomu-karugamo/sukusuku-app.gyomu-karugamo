@@ -26,7 +26,7 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'G-D74K33M791', {
-    linker: { domains: ['gyomu-karugamo.com', 'app.gyomu-karugamo.com'] }
+    linker: { domains: ['sukusuku.gyomu-karugamo.com', 'sukusuku-app.gyomu-karugamo.com'] }
   });
 </script>
 
@@ -795,8 +795,8 @@
         <label class="agree">
           <input type="checkbox" id="agree">
           <span>
-            <a href="https://gyomu-karugamo.com/terms.html" target="_blank" rel="noopener">利用規約</a>および
-            <a href="https://gyomu-karugamo.com/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>を読んで同意しました。
+            <a href="https://sukusuku.gyomu-karugamo.com/terms.html" target="_blank" rel="noopener">利用規約</a>および
+            <a href="https://sukusuku.gyomu-karugamo.com/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>を読んで同意しました。
           </span>
         </label>
 
@@ -813,10 +813,10 @@
     <div class="foot">
       <p>メールが届かない場合は、迷惑メールフォルダもご確認ください。</p>
       <div class="foot-links">
-        <a href="https://gyomu-karugamo.com/terms.html" target="_blank" rel="noopener">利用規約</a>
-        <a href="https://gyomu-karugamo.com/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>
-        <a href="https://gyomu-karugamo.com/legal.html" target="_blank" rel="noopener">特定商取引法に基づく表記</a>
-        <a href="https://gyomu-karugamo.com/contact.html" target="_blank" rel="noopener">お問い合わせ</a>
+        <a href="https://sukusuku.gyomu-karugamo.com/terms.html" target="_blank" rel="noopener">利用規約</a>
+        <a href="https://sukusuku.gyomu-karugamo.com/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>
+        <a href="https://sukusuku.gyomu-karugamo.com/legal.html" target="_blank" rel="noopener">特定商取引法に基づく表記</a>
+        <a href="https://sukusuku.gyomu-karugamo.com/contact.html" target="_blank" rel="noopener">お問い合わせ</a>
       </div>
     </div>
 
@@ -833,7 +833,7 @@
 
   sb.auth.onAuthStateChange((event, session) => {
     if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-      window.location.href = 'https://app.gyomu-karugamo.com/app.html';
+      window.location.href = 'https://sukusuku-app.gyomu-karugamo.com/app.html';
     }
   });
 
@@ -903,7 +903,7 @@
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://app.gyomu-karugamo.com/app.html'
+        redirectTo: 'https://sukusuku-app.gyomu-karugamo.com/app.html'
       }
     });
     if (error) showMsg(googleMsg, TXT.errorPrefix + error.message);
