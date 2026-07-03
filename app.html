@@ -1982,16 +1982,14 @@ async function renderAlbumView(albumId) {
       <div class="page">
         <div class="page-header">
           <a href="#/students/${studentId}" class="back-btn">← 生徒詳細へ</a>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-secondary btn-sm" onclick="unFinalizeAlbum('${albumId}','${studentId}')">編集に戻る</button>
-            ${shareBtn}
-          </div>
+          <button class="btn btn-secondary btn-sm" onclick="unFinalizeAlbum('${albumId}','${studentId}')">編集に戻る</button>
         </div>
         <h2 style="font-family:'Noto Serif JP',serif;margin-bottom:4px">${esc(album.title)}</h2>
         <div style="color:var(--brown-mid);font-size:13px;margin-bottom:20px">${esc(studentName)}・${photos.length}枚</div>
         ${slideViewerHtml('album-view-slide')}
-        <div style="margin-top:16px">
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
           ${pdfBtn}
+          ${shareBtn}
         </div>
         ${upgradeBanner}
       </div>
