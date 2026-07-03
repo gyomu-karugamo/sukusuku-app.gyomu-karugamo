@@ -1077,6 +1077,17 @@ textarea.form-input {
   </div>
 </div>
 
+<!-- ===== 表紙写真選択ポップアップ ===== -->
+<div class="modal-overlay" id="modal-cover-picker">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">表紙の画像を選択</div>
+      <button class="modal-close" onclick="closeModal('modal-cover-picker')">✕</button>
+    </div>
+    <div id="cover-picker-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px;max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- ===== 記録追加モーダル ===== -->
 <div class="modal-overlay" id="modal-record">
   <div class="modal">
@@ -1191,7 +1202,7 @@ const APP_URL           = "https://app.gyomu-karugamo.com/app.html";
 const PLANS = {
   // maxAlbumsFinalized = アルバム確定（PDF/共有可能化）の月間上限
   free:     { name: '無料プラン（お試し）', maxStudents: 2,        maxAlbumsFinalized: 0,        canShare: false, canPDF: false },
-  light:    { name: 'ライトプラン',         maxStudents: 30,       maxAlbumsFinalized: 5,        canShare: true,  canPDF: true  },
+  light:    { name: 'ライトプラン',         maxStudents: 15,       maxAlbumsFinalized: 5,        canShare: true,  canPDF: true  },
   standard: { name: 'スタンダードプラン',   maxStudents: Infinity, maxAlbumsFinalized: Infinity, canShare: true,  canPDF: true  },
   premium:  { name: 'スタンダードプラン',   maxStudents: Infinity, maxAlbumsFinalized: Infinity, canShare: true,  canPDF: true  },
 };
@@ -1539,6 +1550,17 @@ async function renderAlbumEditor(studentId, albumId) {
           </div>
         </div>
 
+        <div class="form-group" style="margin-bottom:12px">
+          <label class="form-label">表紙の画像選択</label>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div id="cover-thumb" style="width:64px;height:64px;border-radius:50%;background:var(--duck-pale);border:2px solid var(--duck-light);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.4rem">
+              ${window._editorCoverSrc ? `<img src="${window._editorCoverSrc}" style="width:100%;height:100%;object-fit:cover">` : '📷'}
+            </div>
+            <button class="btn btn-secondary btn-sm" type="button" onclick="openCoverPicker()">画像を選択</button>
+            ${_profilePhotoUrl ? `<button class="btn btn-secondary btn-sm" type="button" onclick="resetCoverToProfile()">プロフィール画像に戻す</button>` : ''}
+          </div>
+        </div>
+
         <div class="form-group" style="margin-bottom:8px">
           <label class="form-label">メッセージ（任意・アルバム最後のページに掲載）</label>
           <textarea class="form-input" id="album-message-input" rows="3"
@@ -1546,9 +1568,7 @@ async function renderAlbumEditor(studentId, albumId) {
         </div>
 
         <div class="album-hint">
-          写真をドラッグで並び替え、表示／非表示を切り替えられます（${photos.filter(p=>!p.is_excluded).length}枚表示中）<br>
-          <span style="font-size:0.82rem;color:var(--mist)">⭐ アイコンで表紙用の写真を1枚選べます</span>
-          ${_profilePhotoUrl ? `<br><button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="resetCoverToProfile()">プロフィール画像を表紙に戻す</button>` : ''}
+          写真をドラッグで並び替え、表示／非表示を切り替えられます（${photos.filter(p=>!p.is_excluded).length}枚表示中）
         </div>
       </div>
 
@@ -1560,20 +1580,6 @@ async function renderAlbumEditor(studentId, albumId) {
         ${(photos || []).map(p => albumPhotoItemHtml(p)).join('')}
       </div>
     </div>`;
-
-  // 現在の表紙写真に対応する⭐ボタンをハイライト
-  if (window._editorCoverSrc) {
-    document.querySelectorAll('.album-photo-item').forEach(item => {
-      if (item.dataset.src === window._editorCoverSrc) {
-        const btn = item.querySelector('.btn[onclick^="setCoverPhoto"]');
-        if (btn) {
-          btn.textContent = '⭐ 表紙用';
-          btn.style.background = '#f5c542';
-          btn.style.color = '#333';
-        }
-      }
-    });
-  }
 
   // SortableJSを初期化
   if (photos.length > 0) {
@@ -1598,7 +1604,6 @@ function albumPhotoItemHtml(p) {
         ${p.memo ? `<div class="album-photo-memo">${esc(p.memo)}</div>` : ''}
       </div>
       <div class="album-photo-actions">
-        <button class="btn btn-secondary btn-sm" onclick="setCoverPhoto(this,'${url}')" title="表紙用の写真に設定">⭐ 表紙</button>
         <button class="btn ${excluded ? 'btn-secondary' : 'btn-danger'} btn-sm"
           onclick="toggleExclude('${p.id}', ${excluded}, this)">
           ${excluded ? '表示' : '非表示'}
@@ -1682,30 +1687,57 @@ function previewNext() {
   document.getElementById('preview-counter').textContent = `${window._previewIndex + 1} / ${window._previewPages.length}`;
 }
 
+function openCoverPicker() {
+  const grid = document.getElementById('cover-picker-grid');
+  // album-photo-grid から除外されていない写真のURLを収集
+  const items = document.querySelectorAll('.album-photo-item:not(.excluded)');
+  const profileUrl = window._editorProfilePhotoUrl;
+  let html = '';
+
+  // プロフィール画像を先頭に表示
+  if (profileUrl) {
+    const sel = window._editorCoverSrc === profileUrl;
+    html += `<div onclick="selectCoverPhoto('${profileUrl}',this)" style="cursor:pointer;border-radius:10px;overflow:hidden;aspect-ratio:1;position:relative;border:3px solid ${sel?'var(--duck)':'transparent'}">
+      <img src="${profileUrl}" style="width:100%;height:100%;object-fit:cover">
+      ${sel ? '<div style="position:absolute;bottom:4px;right:4px;background:var(--duck);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px">✓</div>' : ''}
+      <div style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;font-size:10px;padding:2px 5px">プロフィール</div>
+    </div>`;
+  }
+
+  items.forEach(item => {
+    const src = item.dataset.src;
+    if (!src) return;
+    const sel = window._editorCoverSrc === src;
+    html += `<div onclick="selectCoverPhoto('${src}',this)" style="cursor:pointer;border-radius:10px;overflow:hidden;aspect-ratio:1;position:relative;border:3px solid ${sel?'var(--duck)':'transparent'}">
+      <img src="${src}" style="width:100%;height:100%;object-fit:cover" loading="lazy">
+      ${sel ? '<div style="position:absolute;bottom:4px;right:4px;background:var(--duck);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px">✓</div>' : ''}
+    </div>`;
+  });
+
+  grid.innerHTML = html || '<div style="padding:16px;color:var(--mist)">写真がありません</div>';
+  openModal('modal-cover-picker');
+}
+
+function selectCoverPhoto(src) {
+  window._editorCoverSrc = src;
+  // サムネイル更新
+  const thumb = document.getElementById('cover-thumb');
+  if (thumb) thumb.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover">`;
+  closeModal('modal-cover-picker');
+}
+
 function resetCoverToProfile() {
   const profileUrl = window._editorProfilePhotoUrl;
   if (!profileUrl) return;
-  // 全⭐ボタンをリセット（プロフィール画像はリストにないためハイライトなし）
-  document.querySelectorAll('.album-photo-item .btn[onclick^="setCoverPhoto"]').forEach(b => {
-    b.textContent = '⭐ 表紙';
-    b.style.background = '';
-    b.style.color = '';
-  });
   window._editorCoverSrc = profileUrl;
-  alert('プロフィール画像を表紙写真に設定しました。');
+  const thumb = document.getElementById('cover-thumb');
+  if (thumb) thumb.innerHTML = `<img src="${profileUrl}" style="width:100%;height:100%;object-fit:cover">`;
 }
 
 function setCoverPhoto(btn, src) {
-  // 他の⭐ボタンをリセット
-  document.querySelectorAll('.album-photo-item .btn[onclick^="setCoverPhoto"]').forEach(b => {
-    b.textContent = '⭐ 表紙';
-    b.style.background = '';
-    b.style.color = '';
-  });
   window._editorCoverSrc = src;
-  btn.textContent = '⭐ 表紙用';
-  btn.style.background = '#f5c542';
-  btn.style.color = '#333';
+  const thumb = document.getElementById('cover-thumb');
+  if (thumb) thumb.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover">`;
 }
 
 function doFinalizeAlbum() {
@@ -2682,9 +2714,10 @@ async function renderAccount() {
           <div class="plan-name">ライトプラン</div>
           <div class="plan-price">¥1,980 <span>/ 月</span></div>
           <div class="plan-features">
-            <div class="plan-feature">生徒登録 〜30名</div>
+            <div class="plan-feature">生徒登録 〜15名</div>
             <div class="plan-feature">レッスン記録（写真・メモ）</div>
-            <div class="plan-feature">自動アルバム生成</div>
+            <div class="plan-feature">アルバムプレビュー 無制限</div>
+            <div class="plan-feature">アルバム作成（PDF・共有） 月5回</div>
             <div class="plan-feature">共有リンク発行</div>
             <div class="plan-feature">PDF・画像エクスポート</div>
           </div>
@@ -2720,8 +2753,9 @@ async function renderAccount() {
           <div class="plan-name">ライトプラン</div>
           <div class="plan-price">¥1,980 <span>/ 月（14日間無料）</span></div>
           <div class="plan-features">
-            <div class="plan-feature">生徒登録 〜30名</div>
-            <div class="plan-feature">アルバム作成 月5回</div>
+            <div class="plan-feature">生徒登録 〜15名</div>
+            <div class="plan-feature">アルバムプレビュー 無制限</div>
+            <div class="plan-feature">アルバム作成（PDF・共有） 月5回</div>
             <div class="plan-feature">共有リンク発行</div>
             <div class="plan-feature">PDF・画像エクスポート</div>
           </div>
