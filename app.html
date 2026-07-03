@@ -879,6 +879,20 @@ textarea.form-input {
 .photo-memo-input::placeholder {
   color: var(--mist);
 }
+.photo-memo-input.memo-error {
+  border-top-color: #d9534f;
+  background: #fff5f5;
+}
+.photo-memo-counter {
+  font-size: 11px;
+  text-align: right;
+  padding: 2px 10px 4px;
+  color: var(--mist);
+}
+.photo-memo-counter.memo-over {
+  color: #d9534f;
+  font-weight: 600;
+}
 
 .photo-preview-remove {
   position: absolute;
@@ -1283,6 +1297,27 @@ async function loadProfile() {
 function getLimits() {
   const tier = currentProfile?.tier || 'free';
   return PLANS[tier] || PLANS.free;
+}
+
+const MEMO_MAX_CHARS = 39;
+
+function onMemoInput(el) {
+  // 改行を除去
+  if (el.value.includes('\n')) {
+    el.value = el.value.replace(/\n/g, '');
+  }
+  const len = el.value.length;
+  const over = len > MEMO_MAX_CHARS;
+  el.classList.toggle('memo-error', over);
+  const counter = el.nextElementSibling;
+  if (counter?.classList.contains('photo-memo-counter')) {
+    counter.textContent = `${len} / ${MEMO_MAX_CHARS}文字`;
+    counter.classList.toggle('memo-over', over);
+  }
+}
+
+function onMemoKeydown(e) {
+  if (e.key === 'Enter') e.preventDefault();
 }
 
 // ============================================================
@@ -2534,7 +2569,8 @@ async function openEditRecordModal(recordId) {
           <img src="${url}" alt="">
           <button class="photo-preview-remove" onclick="markExistingPhotoRemoved('${p.id}','${p.storage_path}',this.closest('.photo-preview-item'))">✕</button>
         </div>
-        <textarea class="photo-memo-input" placeholder="メモ（任意）">${esc(p.memo || (record.memo || ''))}</textarea>`;
+        <textarea class="photo-memo-input" placeholder="メモ（任意）（最大39文字）" oninput="onMemoInput(this)" onkeydown="onMemoKeydown(event)">${esc(p.memo || (record.memo || ''))}</textarea>
+        <div class="photo-memo-counter">${(p.memo || record.memo || '').length} / ${MEMO_MAX_CHARS}文字</div>`;
       existingList.appendChild(div);
     });
   } else {
@@ -2580,7 +2616,8 @@ function addPhotoPreviews(files, containerId) {
         <img src="${url}" alt="">
         <button class="photo-preview-remove" onclick="removePhotoPreview(${idx})">✕</button>
       </div>
-      <textarea class="photo-memo-input" placeholder="メモ（任意）"></textarea>`;
+      <textarea class="photo-memo-input" placeholder="メモ（任意）（最大39文字）" oninput="onMemoInput(this)" onkeydown="onMemoKeydown(event)"></textarea>
+      <div class="photo-memo-counter">0 / ${MEMO_MAX_CHARS}文字</div>`;
     container.appendChild(div);
   }
 }
@@ -2610,6 +2647,14 @@ async function saveRecord() {
   const memo = document.getElementById('record-memo-input').value.trim();
   if (!date) { alert('日付を選択してください'); return; }
   if (!currentStudentId) { alert('生徒が選択されていません'); return; }
+
+  // 写真ごとのメモ文字数チェック
+  const overLimitMemos = [...document.querySelectorAll('.photo-memo-input')].filter(el => el.value.length > MEMO_MAX_CHARS);
+  if (overLimitMemos.length > 0) {
+    alert(`メモは${MEMO_MAX_CHARS}文字以内で入力してください`);
+    overLimitMemos[0].focus();
+    return;
+  }
 
   const validFiles = recordPhotoFiles.filter(f => f !== null);
 
